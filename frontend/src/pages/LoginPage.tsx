@@ -45,12 +45,7 @@ const LoginPage: React.FC = () => {
       const user = userStorage.findUser(formData.email, formData.password, formData.userType);
 
       if (user) {
-        // Check if doctor account is verified
-        if (user.userType === 'doctor' && user.status === 'pending_verification') {
-          showToast('Your doctor account is still under review. Please wait for verification.', 'info');
-          setIsLoading(false);
-          return;
-        }
+        // All accounts are now active upon registration
 
         // Store auth data
         localStorage.setItem('authToken', 'mock-jwt-token');

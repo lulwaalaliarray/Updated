@@ -46,6 +46,24 @@ const UpcomingAppointments: React.FC = () => {
     setUpcomingAppointments(appointments);
   };
 
+  const handleAcceptAppointment = (appointmentId: string) => {
+    if (appointmentStorage.confirmAppointment(appointmentId)) {
+      showToast('Appointment accepted successfully', 'success');
+      loadUpcomingAppointments(user.id || user.email);
+    } else {
+      showToast('Failed to accept appointment', 'error');
+    }
+  };
+
+  const handleRejectAppointment = (appointmentId: string) => {
+    if (appointmentStorage.updateAppointment(appointmentId, { status: 'rejected' })) {
+      showToast('Appointment rejected', 'info');
+      loadUpcomingAppointments(user.id || user.email);
+    } else {
+      showToast('Failed to reject appointment', 'error');
+    }
+  };
+
   const handleCompleteAppointment = (appointmentId: string) => {
     if (appointmentStorage.completeAppointment(appointmentId)) {
       showToast('Appointment marked as completed', 'success');
@@ -153,7 +171,7 @@ const UpcomingAppointments: React.FC = () => {
             color: '#111827',
             marginBottom: '8px'
           }}>
-            Upcoming Appointments
+            My Appointments
           </h1>
           <p style={{
             fontSize: '16px',
@@ -336,53 +354,118 @@ const UpcomingAppointments: React.FC = () => {
                       <div style={{
                         display: 'flex',
                         gap: '8px',
-                        justifyContent: 'flex-end'
+                        justifyContent: 'flex-end',
+                        flexWrap: 'wrap'
                       }}>
-                        <button
-                          onClick={() => handleCancelAppointment(appointment.id)}
-                          style={{
+                        {appointment.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => handleAcceptAppointment(appointment.id)}
+                              style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#dcfce7',
+                                color: '#166534',
+                                border: '1px solid #bbf7d0',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#bbf7d0';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#dcfce7';
+                              }}
+                            >
+                              ✓ Accept
+                            </button>
+                            <button
+                              onClick={() => handleRejectAppointment(appointment.id)}
+                              style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#fee2e2',
+                                color: '#dc2626',
+                                border: '1px solid #fecaca',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#fecaca';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#fee2e2';
+                              }}
+                            >
+                              ✗ Reject
+                            </button>
+                          </>
+                        )}
+                        
+                        {appointment.status === 'confirmed' && (
+                          <>
+                            <button
+                              onClick={() => handleCompleteAppointment(appointment.id)}
+                              style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#0d9488',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#0f766e';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#0d9488';
+                              }}
+                            >
+                              Mark Complete
+                            </button>
+                            <button
+                              onClick={() => handleCancelAppointment(appointment.id)}
+                              style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#fee2e2',
+                                color: '#dc2626',
+                                border: '1px solid #fecaca',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#fecaca';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#fee2e2';
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+
+                        {(appointment.status === 'rejected' || appointment.status === 'completed') && (
+                          <div style={{
                             padding: '8px 16px',
-                            backgroundColor: '#fee2e2',
-                            color: '#dc2626',
-                            border: '1px solid #fecaca',
+                            backgroundColor: '#f3f4f6',
+                            color: '#6b7280',
                             borderRadius: '6px',
                             fontSize: '14px',
-                            fontWeight: '500',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#fecaca';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#fee2e2';
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        {appointment.status === 'confirmed' && (
-                          <button
-                            onClick={() => handleCompleteAppointment(appointment.id)}
-                            style={{
-                              padding: '8px 16px',
-                              backgroundColor: '#0d9488',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              fontSize: '14px',
-                              fontWeight: '500',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#0f766e';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = '#0d9488';
-                            }}
-                          >
-                            Mark Complete
-                          </button>
+                            fontWeight: '500'
+                          }}>
+                            {appointment.status === 'rejected' ? 'Rejected' : 'Completed'}
+                          </div>
                         )}
                       </div>
                     </div>

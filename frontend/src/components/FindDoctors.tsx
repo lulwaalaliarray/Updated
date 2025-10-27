@@ -267,8 +267,7 @@ const FindDoctors: React.FC = () => {
   };
 
   const handleViewProfile = (doctorId: string) => {
-    console.log('Viewing profile for doctor:', doctorId);
-    showToast('Doctor profile feature coming soon!', 'info');
+    navigate(`/doctor/${doctorId}`);
   };
 
   return (
@@ -478,6 +477,7 @@ const FindDoctors: React.FC = () => {
                   <span> in <span style={{ fontWeight: '600', color: '#2563eb' }}>{selectedLocation}</span></span>
                 )}
               </p>
+
             </div>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

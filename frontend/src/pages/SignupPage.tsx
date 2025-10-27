@@ -127,7 +127,7 @@ const SignupPage: React.FC = () => {
         password: formData.password, // In real app, this would be hashed
         userType: formData.userType as 'patient' | 'doctor',
         cpr: formData.cpr,
-        status: formData.userType === 'doctor' ? 'pending_verification' : 'active',
+        status: 'active',
         createdAt: new Date().toISOString(),
         ...(formData.userType === 'doctor' && {
           specialization: formData.specialization,
@@ -150,11 +150,7 @@ const SignupPage: React.FC = () => {
       }
 
       // Show success message
-      if (formData.userType === 'doctor') {
-        showToast('Account created successfully! Your certification is under review. Please log in to continue.', 'success');
-      } else {
-        showToast('Account created successfully! Please log in to access your account.', 'success');
-      }
+      showToast('Account created successfully! Please log in to access your account.', 'success');
       
       // Clear form data
       setFormData({

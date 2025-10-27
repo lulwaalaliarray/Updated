@@ -9,6 +9,7 @@ import FindDoctors from './components/FindDoctors';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import { isLoggedIn } from './utils/navigation';
+import './utils/updateDoctorStatus'; // Auto-activate pending doctors
 
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
@@ -27,6 +28,8 @@ import ProfilePage from './pages/ProfilePage';
 import UpcomingAppointments from './components/UpcomingAppointments';
 import ManageAvailability from './components/ManageAvailability';
 import WritePrescription from './components/WritePrescription';
+import DoctorProfilePage from './pages/DoctorProfilePage';
+import MyAppointmentsPage from './pages/MyAppointmentsPage';
 
 
 const ChatPage = () => <div style={{ padding: '40px', textAlign: 'center' }}><h2>Chat with Doctor</h2><p>Secure messaging with healthcare providers.</p></div>;
@@ -36,20 +39,45 @@ const SupportPage = () => <div style={{ padding: '40px', textAlign: 'center' }}>
 function App(): JSX.Element {
   const [user, setUser] = useState<{ name: string; email?: string; userType?: string; avatar?: string } | null>(null);
 
-  // Check for existing authentication on app load
+  // Check for existing authentication on app load and when storage changes
   useEffect(() => {
-    if (isLoggedIn()) {
-      const userData = localStorage.getItem('userData');
-      if (userData) {
-        try {
-          setUser(JSON.parse(userData));
-        } catch (error) {
-          console.error('Error parsing user data:', error);
-          localStorage.removeItem('userData');
-          localStorage.removeItem('authToken');
+    const checkAuth = () => {
+      if (isLoggedIn()) {
+        const userData = localStorage.getItem('userData');
+        if (userData) {
+          try {
+            setUser(JSON.parse(userData));
+          } catch (error) {
+            console.error('Error parsing user data:', error);
+            localStorage.removeItem('userData');
+            localStorage.removeItem('authToken');
+            setUser(null);
+          }
         }
+      } else {
+        setUser(null);
       }
-    }
+    };
+
+    // Check on mount
+    checkAuth();
+
+    // Listen for storage changes (when user logs in/out in same tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'userData' || e.key === 'authToken') {
+        checkAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically in case of same-tab changes
+    const interval = setInterval(checkAuth, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   return (
@@ -98,9 +126,10 @@ function App(): JSX.Element {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/appointments" element={
             <ProtectedRoute message="Please log in to view your appointments">
-              <UpcomingAppointments />
+              {user?.userType === 'doctor' ? <UpcomingAppointments /> : <MyAppointmentsPage />}
             </ProtectedRoute>
           } />
+          <Route path="/doctor/:doctorId" element={<DoctorProfilePage />} />
           <Route path="/chat" element={
             <ProtectedRoute message="Please log in to chat with doctors">
               <ChatPage />

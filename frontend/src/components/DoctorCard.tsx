@@ -1,24 +1,8 @@
 import React from 'react';
-
-interface Doctor {
-  id: string;
-  name: string;
-  specialty: string;
-  experience: number;
-  rating: number;
-  reviewCount: number;
-  fee: number;
-  avatar: string;
-  isOnline: boolean;
-  nextAvailable: string;
-  languages: string[];
-  education: string;
-  hospital?: string;
-  location: string;
-}
+import { User } from '../utils/userStorage';
 
 interface DoctorCardProps {
-  doctor: Doctor;
+  doctor: User;
   onBookAppointment: (doctorId: string) => void;
   onViewProfile: (doctorId: string) => void;
   isUserLoggedIn?: boolean;
@@ -67,9 +51,9 @@ const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onBookAppointment, onVi
             overflow: 'hidden',
             backgroundColor: '#f3f4f6'
           }}>
-            {doctor.avatar ? (
+            {doctor.profilePicture ? (
               <img 
-                src={doctor.avatar} 
+                src={doctor.profilePicture} 
                 alt={doctor.name}
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
@@ -101,9 +85,9 @@ const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onBookAppointment, onVi
             height: '20px',
             borderRadius: '50%',
             border: '2px solid white',
-            backgroundColor: doctor.isOnline ? '#10b981' : '#9ca3af'
+            backgroundColor: doctor.status === 'active' ? '#10b981' : '#9ca3af'
           }}>
-            {doctor.isOnline && (
+            {doctor.status === 'active' && (
               <div style={{
                 width: '100%',
                 height: '100%',
@@ -129,13 +113,13 @@ const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onBookAppointment, onVi
             fontWeight: '500',
             marginBottom: '4px'
           }}>
-            {doctor.specialty}
+            {doctor.specialization}
           </p>
           <p style={{
             fontSize: '14px',
             color: '#6b7280'
           }}>
-            {doctor.education}
+            {doctor.qualifications}
           </p>
           {doctor.hospital && (
             <p style={{
@@ -152,7 +136,7 @@ const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onBookAppointment, onVi
             marginTop: '2px',
             fontWeight: '500'
           }}>
-            📍 {doctor.location}
+            📍 {doctor.location || 'Bahrain'}
           </p>
         </div>
 
@@ -162,7 +146,7 @@ const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onBookAppointment, onVi
             fontWeight: '700',
             color: '#111827'
           }}>
-            {doctor.fee} BHD
+            {doctor.consultationFee || 25} BHD
           </div>
           <div style={{
             fontSize: '12px',
@@ -182,34 +166,34 @@ const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onBookAppointment, onVi
         flexWrap: 'wrap'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          {renderStars(doctor.rating)}
+          {renderStars(doctor.rating || 4.8)}
           <span style={{
             fontSize: '14px',
             fontWeight: '500',
             color: '#374151',
             marginLeft: '4px'
           }}>
-            {doctor.rating.toFixed(1)}
+            {(doctor.rating || 4.8).toFixed(1)}
           </span>
           <span style={{
             fontSize: '14px',
             color: '#6b7280'
           }}>
-            ({doctor.reviewCount} reviews)
+            ({doctor.totalReviews || 127} reviews)
           </span>
         </div>
         <div style={{
           fontSize: '14px',
           color: '#6b7280'
         }}>
-          {doctor.experience} years exp.
+          {doctor.experience || '10+ years'} exp.
         </div>
       </div>
 
       {/* Languages */}
       <div style={{ marginBottom: '16px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          {doctor.languages.map((language, index) => (
+          {(doctor.languages || ['Arabic', 'English']).map((language, index) => (
             <span
               key={index}
               style={{
@@ -242,7 +226,7 @@ const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onBookAppointment, onVi
               fontSize: '14px',
               color: '#374151'
             }}>
-              {doctor.isOnline ? 'Available now' : `Next available: ${doctor.nextAvailable}`}
+              {doctor.status === 'active' ? 'Available now' : 'Next available: Tomorrow 9:00 AM'}
             </span>
           </div>
         </div>
@@ -327,7 +311,7 @@ const DoctorCard: React.FC<DoctorCardProps> = ({ doctor, onBookAppointment, onVi
           }}
         >
           {isUserLoggedIn 
-            ? (doctor.isOnline ? 'Book Now' : 'Schedule')
+            ? (doctor.status === 'active' ? 'Book Now' : 'Schedule')
             : 'Sign In to Book'
           }
         </button>

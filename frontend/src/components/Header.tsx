@@ -172,8 +172,26 @@ const Header: React.FC = () => {
               >
                 {user.userType === 'doctor' ? 'Past Patients' : 'Dashboard'}
               </button>
+              {user.userType !== 'doctor' && (
+                <button 
+                  onClick={() => handleNavClick(routes.doctors)}
+                  style={{ 
+                    color: '#6b7280', 
+                    background: 'none',
+                    border: 'none',
+                    fontWeight: '500',
+                    fontSize: '16px',
+                    transition: 'color 0.2s',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#0d9488'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
+                >
+                  Find Doctors
+                </button>
+              )}
               <button 
-                onClick={() => handleNavClick(user.userType === 'doctor' ? routes.appointments : routes.doctors)}
+                onClick={() => handleNavClick(routes.appointments)}
                 style={{ 
                   color: '#6b7280', 
                   background: 'none',
@@ -186,7 +204,7 @@ const Header: React.FC = () => {
                 onMouseEnter={(e) => e.currentTarget.style.color = '#0d9488'}
                 onMouseLeave={(e) => e.currentTarget.style.color = '#6b7280'}
               >
-                {user.userType === 'doctor' ? 'Upcoming Appointments' : 'Find Doctors'}
+                My Appointments
               </button>
             </>
           )}
@@ -518,8 +536,13 @@ const Header: React.FC = () => {
                 <button onClick={() => handleNavClick(routes.dashboard)} style={{ color: '#6b7280', background: 'none', border: 'none', textAlign: 'left', fontWeight: '500', cursor: 'pointer' }}>
                   {user && user.userType === 'doctor' ? 'Past Patients' : 'Dashboard'}
                 </button>
-                <button onClick={() => handleNavClick(user.userType === 'doctor' ? routes.appointments : routes.doctors)} style={{ color: '#6b7280', background: 'none', border: 'none', textAlign: 'left', fontWeight: '500', cursor: 'pointer' }}>
-                  {user.userType === 'doctor' ? 'Upcoming Appointments' : 'Find Doctors'}
+                {user.userType !== 'doctor' && (
+                  <button onClick={() => handleNavClick(routes.doctors)} style={{ color: '#6b7280', background: 'none', border: 'none', textAlign: 'left', fontWeight: '500', cursor: 'pointer' }}>
+                    Find Doctors
+                  </button>
+                )}
+                <button onClick={() => handleNavClick(routes.appointments)} style={{ color: '#6b7280', background: 'none', border: 'none', textAlign: 'left', fontWeight: '500', cursor: 'pointer' }}>
+                  My Appointments
                 </button>
               </>
             )}

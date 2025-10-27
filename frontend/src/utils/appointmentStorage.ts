@@ -9,7 +9,7 @@ export interface Appointment {
   time: string;
   duration: number; // in minutes
   type: 'consultation' | 'follow-up' | 'check-up' | 'emergency';
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'pending' | 'confirmed' | 'rejected' | 'cancelled' | 'completed';
   notes?: string;
   fee: number;
   createdAt: string;
@@ -220,7 +220,7 @@ export const appointmentStorage = {
     
     const today = new Date().toISOString().split('T')[0];
     return appointments
-      .filter(apt => apt.date >= today && apt.status !== 'cancelled')
+      .filter(apt => apt.date >= today && apt.status !== 'cancelled' && apt.status !== 'completed')
       .sort((a, b) => {
         const dateCompare = a.date.localeCompare(b.date);
         if (dateCompare === 0) {

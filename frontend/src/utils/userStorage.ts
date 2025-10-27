@@ -12,6 +12,7 @@ export interface User {
   createdAt: string;
   // Doctor-specific fields
   specialization?: string;
+  specializations?: string[];
   consultationFee?: number;
   experience?: string;
   qualifications?: string;
@@ -24,6 +25,14 @@ export interface User {
   };
   rating?: number;
   reviewCount?: number;
+  totalReviews?: number;
+  profilePicture?: string;
+  bio?: string;
+  languages?: string[];
+  phone?: string;
+  hospital?: string;
+  location?: string;
+  clinicAddress?: string;
 }
 
 export const userStorage = {
