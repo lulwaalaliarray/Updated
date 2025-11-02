@@ -63,14 +63,40 @@ const LeaveReview: React.FC = () => {
       setIsUpdating(true);
     }
 
-    // In a real app, you'd fetch doctor info from an API
-    // For now, we'll use mock data
-    setDoctorInfo({
-      id: doctorId,
-      name: 'Dr. Ahmed Al-Mahmood',
-      specialization: 'Cardiology',
-      avatar: null
-    });
+    // Load doctor information from user storage
+    try {
+      const userStorageData = localStorage.getItem('patientcare_users');
+      if (userStorageData) {
+        const users = JSON.parse(userStorageData);
+        const doctor = users.find((user: any) => user.id === doctorId && user.userType === 'doctor');
+        
+        if (doctor) {
+          setDoctorInfo({
+            id: doctorId,
+            name: doctor.name,
+            specialization: doctor.specialization || 'General Medicine',
+            avatar: doctor.profilePicture || null
+          });
+        } else {
+          // Fallback if doctor not found
+          setDoctorInfo({
+            id: doctorId,
+            name: 'Doctor',
+            specialization: 'General Medicine',
+            avatar: null
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading doctor info:', error);
+      // Fallback doctor info
+      setDoctorInfo({
+        id: doctorId,
+        name: 'Doctor',
+        specialization: 'General Medicine',
+        avatar: null
+      });
+    }
 
     setIsCheckingEligibility(false);
   }, [doctorId, navigate, showToast]);

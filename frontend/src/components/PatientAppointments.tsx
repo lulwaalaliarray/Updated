@@ -609,7 +609,7 @@ const PatientAppointments: React.FC = () => {
                             padding: '8px 16px',
                             border: 'none',
                             borderRadius: '6px',
-                            backgroundColor: '#0d9488',
+                            backgroundColor: '#f59e0b',
                             color: 'white',
                             fontSize: '14px',
                             fontWeight: '500',
@@ -618,15 +618,18 @@ const PatientAppointments: React.FC = () => {
                             display: 'flex',
                             alignItems: 'center',
                             gap: '6px',
-                            position: 'relative'
+                            position: 'relative',
+                            boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)'
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#0f766e';
+                            e.currentTarget.style.backgroundColor = '#d97706';
                             e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 4px 8px rgba(245, 158, 11, 0.4)';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#0d9488';
+                            e.currentTarget.style.backgroundColor = '#f59e0b';
                             e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(245, 158, 11, 0.3)';
                           }}
                         >
                           <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
@@ -639,7 +642,7 @@ const PatientAppointments: React.FC = () => {
                             right: '-6px',
                             width: '12px',
                             height: '12px',
-                            backgroundColor: '#f59e0b',
+                            backgroundColor: '#dc2626',
                             borderRadius: '50%',
                             border: '2px solid white',
                             animation: 'pulse 2s infinite'

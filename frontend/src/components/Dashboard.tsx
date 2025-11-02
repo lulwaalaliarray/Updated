@@ -6,6 +6,7 @@ import Header from './Header';
 import Footer from './Footer';
 import { appointmentStorage } from '../utils/appointmentStorage';
 import { prescriptionStorage } from '../utils/prescriptionStorage';
+import { userStorage } from '../utils/userStorage';
 
 interface DashboardProps {
   user: {
@@ -34,6 +35,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       status?: string;
     }>
   });
+
+  // State for review notifications (patients only)
+  const [reviewNotifications, setReviewNotifications] = useState<Array<{
+    appointmentId: string;
+    doctorId: string;
+    doctorName: string;
+    date: string;
+    type: string;
+  }>>([]);
 
   // Calculate monthly statistics
   useEffect(() => {
@@ -189,6 +199,33 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         upcomingAppointments: upcoming.length,
         recentActivity: recentActivity.slice(0, 5)
       });
+
+      // Calculate review notifications for patients
+      if (user.userType === 'patient') {
+        const completedAppointments = userAppointments.filter(apt => 
+          apt.status === 'completed'
+        );
+
+        // Check which completed appointments don't have reviews yet
+        const reviewStorage = require('../utils/reviewStorage').reviewStorage;
+        const existingReviews = reviewStorage.getPatientReviews(userId);
+        
+        const appointmentsNeedingReviews = completedAppointments.filter(apt => {
+          // Check if this appointment already has a review
+          return !existingReviews.some((review: any) => 
+            review.doctorId === apt.doctorId && 
+            new Date(review.date).toDateString() === new Date(apt.date).toDateString()
+          );
+        }).slice(0, 3); // Limit to 3 most recent
+
+        setReviewNotifications(appointmentsNeedingReviews.map(apt => ({
+          appointmentId: apt.id,
+          doctorId: apt.doctorId,
+          doctorName: apt.doctorName,
+          date: apt.date,
+          type: apt.type
+        })));
+      }
     };
 
     calculateStats();
@@ -441,6 +478,141 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               }
             </p>
           </div>
+
+          {/* Doctor Profile Information */}
+          {user.userType === 'doctor' && (() => {
+            const userData = localStorage.getItem('userData');
+            let doctorInfo = null;
+            if (userData) {
+              try {
+                doctorInfo = JSON.parse(userData);
+              } catch (error) {
+                console.error('Error parsing user data:', error);
+              }
+            }
+            
+            return doctorInfo && (
+              <div style={{
+                backgroundColor: '#f0fdfa',
+                border: '2px solid #14b8a6',
+                borderRadius: '12px',
+                padding: '20px',
+                marginBottom: '24px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    backgroundColor: '#0d9488',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <svg width="20" height="20" fill="white" viewBox="0 0 24 24">
+                      <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1H5C3.89 1 3 1.89 3 3V21C3 22.11 3.89 23 5 23H19C20.11 23 21 22.11 21 21V9M19 9H14V4H5V21H19V9Z"/>
+                    </svg>
+                  </div>
+                  <h3 style={{
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    color: '#0d9488',
+                    margin: 0
+                  }}>
+                    Doctor Profile Information
+                  </h3>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                  <div>
+                    <p style={{
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      color: '#6b7280',
+                      margin: '0 0 4px 0',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Doctor ID
+                    </p>
+                    <p style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#111827',
+                      margin: 0,
+                      fontFamily: 'monospace'
+                    }}>
+                      {doctorInfo.id}
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      color: '#6b7280',
+                      margin: '0 0 4px 0',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      CPR Number
+                    </p>
+                    <p style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#111827',
+                      margin: 0,
+                      fontFamily: 'monospace'
+                    }}>
+                      {userStorage.formatCPR(doctorInfo.cpr)}
+                    </p>
+                  </div>
+                  {doctorInfo.specialization && (
+                    <div>
+                      <p style={{
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#6b7280',
+                        margin: '0 0 4px 0',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        Specialization
+                      </p>
+                      <p style={{
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#111827',
+                        margin: 0
+                      }}>
+                        {doctorInfo.specialization}
+                      </p>
+                    </div>
+                  )}
+                  {doctorInfo.consultationFee && (
+                    <div>
+                      <p style={{
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#6b7280',
+                        margin: '0 0 4px 0',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        Consultation Fee
+                      </p>
+                      <p style={{
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#111827',
+                        margin: 0
+                      }}>
+                        {doctorInfo.consultationFee} BHD
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Quick Actions Grid */}
           <div style={{
@@ -774,6 +946,154 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             )}
           </div>
         </div>
+
+        {/* Review Notifications for Patients */}
+        {user.userType === 'patient' && reviewNotifications.length > 0 && (
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '24px',
+            marginTop: '24px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+            border: '2px solid #fbbf24'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                backgroundColor: '#fef3c7',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <svg width="20" height="20" fill="#f59e0b" viewBox="0 0 24 24">
+                  <path d="M12,15.39L8.24,17.66L9.23,13.38L5.91,10.5L10.29,10.13L12,6.09L13.71,10.13L18.09,10.5L14.77,13.38L15.76,17.66M22,9.24L14.81,8.63L12,2L9.19,8.63L2,9.24L7.45,13.97L5.82,21L12,17.27L18.18,21L16.54,13.97L22,9.24Z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
+                }}>
+                  Share Your Experience
+                </h3>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  margin: 0
+                }}>
+                  Help other patients by reviewing your recent appointments
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {reviewNotifications.map((notification, index) => (
+                <div
+                  key={index}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '16px',
+                    backgroundColor: '#fffbeb',
+                    borderRadius: '12px',
+                    border: '1px solid #fed7aa'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      backgroundColor: '#0d9488',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '18px',
+                      fontWeight: '600'
+                    }}>
+                      {notification.doctorName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </div>
+                    <div>
+                      <h4 style={{
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#111827',
+                        margin: '0 0 4px 0'
+                      }}>
+                        {notification.doctorName}
+                      </h4>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#6b7280',
+                        margin: 0
+                      }}>
+                        {notification.type} • {new Date(notification.date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => navigate(`/leave-review/${notification.doctorId}`)}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#f59e0b',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#d97706';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f59e0b';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12,15.39L8.24,17.66L9.23,13.38L5.91,10.5L10.29,10.13L12,6.09L13.71,10.13L18.09,10.5L14.77,13.38L15.76,17.66M22,9.24L14.81,8.63L12,2L9.19,8.63L2,9.24L7.45,13.97L5.82,21L12,17.27L18.18,21L16.54,13.97L22,9.24Z"/>
+                    </svg>
+                    Write Review
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div style={{
+              marginTop: '16px',
+              padding: '12px',
+              backgroundColor: '#f0f9ff',
+              borderRadius: '8px',
+              border: '1px solid #bae6fd'
+            }}>
+              <p style={{
+                fontSize: '12px',
+                color: '#0369a1',
+                margin: 0,
+                textAlign: 'center'
+              }}>
+                💡 Your reviews help other patients make informed decisions and help doctors improve their services
+              </p>
+            </div>
+          </div>
+        )}
       </div>
       
       <Footer />

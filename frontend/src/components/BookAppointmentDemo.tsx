@@ -24,7 +24,7 @@ const BookAppointmentDemo: React.FC<BookAppointmentDemoProps> = ({ doctorId, doc
     setSelectedTime(''); // Reset selected time when date changes
   }, [selectedDate, doctorId]);
 
-  // Generate available dates (next 14 days) - based on doctor's weekly schedule and unavailable dates
+  // Generate available dates (next 14 days) - based on doctor's weekly schedule, calendar overrides, and unavailable dates
   const getAvailableDates = () => {
     const dates = [];
     const today = new Date();
@@ -39,6 +39,7 @@ const BookAppointmentDemo: React.FC<BookAppointmentDemoProps> = ({ doctorId, doc
     const unavailableDates = doctorAvailability.unavailableDates || [];
     const unavailableDateStrings = unavailableDates.map(ud => ud.date);
     const weeklySchedule = doctorAvailability.weeklySchedule;
+    const calendarOverrides = doctorAvailability.calendarOverrides || {};
     
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     
@@ -49,55 +50,37 @@ const BookAppointmentDemo: React.FC<BookAppointmentDemoProps> = ({ doctorId, doc
       const dayOfWeek = date.getDay();
       const dayName = dayNames[dayOfWeek];
       
-      // Check if doctor is available on this day of the week
-      const dayAvailability = weeklySchedule[dayName];
-      const isDoctorAvailableOnThisDay = dayAvailability && dayAvailability.available && dayAvailability.timeSlots.length > 0;
+      // Skip if date is marked as unavailable
+      if (unavailableDateStrings.includes(dateString)) {
+        continue;
+      }
       
-      // Include date if:
-      // 1. Doctor is available on this day of the week
-      // 2. Date is not in unavailable dates list
-      if (isDoctorAvailableOnThisDay && !unavailableDateStrings.includes(dateString)) {
-        dates.push(dateString);
+      // Check for calendar override first
+      if (calendarOverrides[dateString]) {
+        // Has calendar override - include if it has time slots
+        if (calendarOverrides[dateString].length > 0) {
+          dates.push(dateString);
+        }
+      } else {
+        // No override - check weekly schedule
+        const dayAvailability = weeklySchedule[dayName];
+        const isDoctorAvailableOnThisDay = dayAvailability && dayAvailability.available && dayAvailability.timeSlots.length > 0;
+        
+        if (isDoctorAvailableOnThisDay) {
+          dates.push(dateString);
+        }
       }
     }
     
     return dates;
   };
 
-  // Generate available time slots based on doctor's weekly schedule and existing bookings
+  // Generate available time slots based on doctor's weekly schedule, calendar overrides, and existing bookings
   const getAvailableTimeSlots = () => {
     if (!selectedDate) return [];
     
-    // Get the day of the week for the selected date
-    const selectedDateObj = new Date(selectedDate);
-    const dayOfWeek = selectedDateObj.getDay();
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const dayName = dayNames[dayOfWeek];
-    
-    // Get doctor's availability for this day
-    const doctorAvailability = availabilityStorage.getDoctorAvailability(doctorId);
-    if (!doctorAvailability) {
-      // If no availability data, return empty (doctor hasn't set schedule)
-      return [];
-    }
-    
-    const dayAvailability = doctorAvailability.weeklySchedule[dayName];
-    if (!dayAvailability || !dayAvailability.available) {
-      // Doctor is not available on this day
-      return [];
-    }
-    
-    // Generate time slots based on doctor's available time slots
-    const availableSlots: string[] = [];
-    
-    dayAvailability.timeSlots.forEach(timeSlot => {
-      const startTime = timeSlot.start;
-      const endTime = timeSlot.end;
-      
-      // Generate 30-minute slots between start and end time
-      const slots = generateTimeSlotsInRange(startTime, endTime);
-      availableSlots.push(...slots);
-    });
+    // Use the enhanced availabilityStorage method that handles both weekly schedule and calendar overrides
+    return availabilityStorage.getAvailableSlots(doctorId, selectedDate, 30);
     
     // Get existing appointments for this doctor on the selected date
     const existingAppointments = appointmentStorage.getAllAppointments();

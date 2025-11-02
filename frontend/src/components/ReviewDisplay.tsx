@@ -45,16 +45,46 @@ const ReviewDisplay: React.FC = () => {
   };
 
   const loadDoctorInfo = () => {
-    // In a real app, you'd fetch doctor info from an API
-    // For now, we'll use mock data
-    setDoctorInfo({
-      id: doctorId,
-      name: 'Dr. Ahmed Al-Mahmood',
-      specialization: 'Cardiology',
-      avatar: null,
-      experience: '15 years',
-      location: 'Manama, Bahrain'
-    });
+    // Load doctor information from user storage
+    try {
+      const userStorageData = localStorage.getItem('patientcare_users');
+      if (userStorageData) {
+        const users = JSON.parse(userStorageData);
+        const doctor = users.find((user: any) => user.id === doctorId && user.userType === 'doctor');
+        
+        if (doctor) {
+          setDoctorInfo({
+            id: doctorId,
+            name: doctor.name,
+            specialization: doctor.specialization || 'General Medicine',
+            avatar: doctor.profilePicture || null,
+            experience: doctor.experience || '5+ years',
+            location: doctor.location || 'Manama, Bahrain'
+          });
+        } else {
+          // Fallback if doctor not found
+          setDoctorInfo({
+            id: doctorId,
+            name: 'Doctor',
+            specialization: 'General Medicine',
+            avatar: null,
+            experience: '5+ years',
+            location: 'Manama, Bahrain'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading doctor info:', error);
+      // Fallback doctor info
+      setDoctorInfo({
+        id: doctorId,
+        name: 'Doctor',
+        specialization: 'General Medicine',
+        avatar: null,
+        experience: '5+ years',
+        location: 'Manama, Bahrain'
+      });
+    }
   };
 
   const getAverageRating = () => {

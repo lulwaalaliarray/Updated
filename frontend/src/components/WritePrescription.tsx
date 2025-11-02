@@ -18,6 +18,7 @@ const WritePrescription: React.FC = () => {
   const [availableAppointments, setAvailableAppointments] = useState<any[]>([]);
   const [diagnosis, setDiagnosis] = useState('');
   const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [medications, setMedications] = useState([
     {
       name: '',
@@ -29,8 +30,11 @@ const WritePrescription: React.FC = () => {
   ]);
 
   useEffect(() => {
+    console.log('WritePrescription useEffect running...');
+    
     // Check if user is logged in and is a doctor
     if (!isLoggedIn()) {
+      console.log('User not logged in, redirecting to login');
       showToast('Please log in to write prescriptions', 'error');
       navigate('/login');
       return;
@@ -40,7 +44,10 @@ const WritePrescription: React.FC = () => {
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData);
+        console.log('Parsed user:', parsedUser);
+        
         if (parsedUser.userType !== 'doctor') {
+          console.log('User is not a doctor, redirecting to home');
           showToast('Access denied. Doctors only.', 'error');
           navigate('/');
           return;
@@ -122,40 +129,49 @@ const WritePrescription: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     
-    // Enhanced validation including appointment selection
-    if (!selectedPatient || !selectedAppointment || !diagnosis.trim()) {
-      showToast('Please select a patient, appointment date, and enter a diagnosis', 'error');
-      return;
+    if (isSubmitting) {
+      console.log('Already submitting, ignoring duplicate submission');
+      return false;
     }
-
-    // Check if prescription already exists for this appointment
-    if (prescriptionStorage.prescriptionExistsForAppointment(selectedAppointment)) {
-      showToast('A prescription has already been issued for this appointment', 'error');
-      return;
-    }
-
-    const validMedications = medications.filter(med => 
-      med.name.trim() && med.dosage.trim() && med.frequency.trim() && med.duration.trim()
-    );
-
-    if (validMedications.length === 0) {
-      showToast('Please add at least one complete medication', 'error');
-      return;
-    }
-
-    const selectedPatientData = pastPatients.find(p => p.patientId === selectedPatient);
-    const selectedAppointmentData = availableAppointments.find(apt => apt.id === selectedAppointment);
     
-    if (!selectedPatientData || !selectedAppointmentData) {
-      showToast('Selected patient or appointment not found', 'error');
-      return;
-    }
-
+    setIsSubmitting(true);
+    console.log('Starting prescription submission...');
+    
     try {
-      prescriptionStorage.addPrescription({
+      // Enhanced validation including appointment selection
+      if (!selectedPatient || !selectedAppointment || !diagnosis.trim()) {
+        showToast('Please select a patient, appointment date, and enter a diagnosis', 'error');
+        return false;
+      }
+
+      // Check if prescription already exists for this appointment
+      if (prescriptionStorage.prescriptionExistsForAppointment(selectedAppointment)) {
+        showToast('A prescription has already been issued for this appointment', 'error');
+        return false;
+      }
+
+      const validMedications = medications.filter(med => 
+        med.name.trim() && med.dosage.trim() && med.frequency.trim() && med.duration.trim()
+      );
+
+      if (validMedications.length === 0) {
+        showToast('Please add at least one complete medication', 'error');
+        return false;
+      }
+
+      const selectedPatientData = pastPatients.find(p => p.patientId === selectedPatient);
+      const selectedAppointmentData = availableAppointments.find(apt => apt.id === selectedAppointment);
+      
+      if (!selectedPatientData || !selectedAppointmentData) {
+        showToast('Selected patient or appointment not found', 'error');
+        return false;
+      }
+
+      const newPrescription = prescriptionStorage.addPrescription({
         patientId: selectedPatient,
         patientName: selectedPatientData.patientName,
         patientEmail: selectedPatientData.patientEmail,
@@ -170,6 +186,7 @@ const WritePrescription: React.FC = () => {
         status: 'active'
       });
 
+      console.log('Prescription created successfully:', newPrescription);
       showToast('Prescription created successfully for the selected visit!', 'success');
       
       // Reset form and reload patients (to update available visits count)
@@ -190,9 +207,15 @@ const WritePrescription: React.FC = () => {
       if (user) {
         loadPastPatients(user.id || user.email);
       }
+      
+      console.log('Prescription submission completed successfully');
+      return false; // Prevent any default form behavior
     } catch (error) {
       console.error('Error creating prescription:', error);
       showToast('Error creating prescription', 'error');
+      return false;
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -219,6 +242,14 @@ const WritePrescription: React.FC = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      <style>
+        {`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
       <Header />
 
       {/* Main Content */}
@@ -253,7 +284,12 @@ const WritePrescription: React.FC = () => {
         </div>
 
         {/* Prescription Form */}
-        <form onSubmit={handleSubmit}>
+        <form 
+          onSubmit={handleSubmit}
+          onReset={(e) => e.preventDefault()}
+          method="post"
+          action="#"
+        >
           <div style={{
             backgroundColor: 'white',
             borderRadius: '16px',
@@ -674,32 +710,46 @@ const WritePrescription: React.FC = () => {
             <div style={{ textAlign: 'center' }}>
               <button
                 type="submit"
-                disabled={pastPatients.length === 0}
+                disabled={pastPatients.length === 0 || isSubmitting}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSubmit(e);
+                }}
                 style={{
                   padding: '12px 32px',
-                  backgroundColor: pastPatients.length === 0 ? '#9ca3af' : '#0d9488',
+                  backgroundColor: (pastPatients.length === 0 || isSubmitting) ? '#9ca3af' : '#0d9488',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   fontSize: '16px',
                   fontWeight: '600',
-                  cursor: pastPatients.length === 0 ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s'
+                  cursor: (pastPatients.length === 0 || isSubmitting) ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
                 }}
                 onMouseEnter={(e) => {
-                  if (pastPatients.length > 0) {
+                  if (pastPatients.length > 0 && !isSubmitting) {
                     e.currentTarget.style.backgroundColor = '#0f766e';
                     e.currentTarget.style.transform = 'translateY(-1px)';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (pastPatients.length > 0) {
+                  if (pastPatients.length > 0 && !isSubmitting) {
                     e.currentTarget.style.backgroundColor = '#0d9488';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }
                 }}
               >
-                Send Prescription
+                {isSubmitting && (
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" style={{ animation: 'spin 1s linear infinite' }}>
+                    <path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.364-7.364l-2.828 2.828M9.464 18.536l-2.828 2.828m12.728 0l-2.828-2.828M9.464 5.464L6.636 2.636"/>
+                  </svg>
+                )}
+                {isSubmitting ? 'Creating Prescription...' : 'Send Prescription'}
               </button>
               <p style={{
                 fontSize: '12px',
