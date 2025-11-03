@@ -26,15 +26,44 @@ import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import ProfilePage from './pages/ProfilePage';
 import UpcomingAppointments from './components/UpcomingAppointments';
-import ManageAvailability from './components/ManageAvailability';
+import EnhancedAvailability from './components/EnhancedAvailability';
 import WritePrescription from './components/WritePrescription';
 import DoctorProfilePage from './pages/DoctorProfilePage';
 import MyAppointmentsPage from './pages/MyAppointmentsPage';
+import PatientRecords from './components/PatientRecords';
+import DoctorPatientRecords from './components/DoctorPatientRecords';
+import ViewPrescriptions from './components/ViewPrescriptions';
+import PersonalMedicalRecords from './components/PersonalMedicalRecords';
+import PastPatients from './components/PastPatients';
+import LeaveReview from './components/LeaveReview';
+import ReviewDisplay from './components/ReviewDisplay';
+import PatientAppointments from './components/PatientAppointments';
+import DoctorAppointmentManager from './components/DoctorAppointmentManager';
+import DemoModal from './components/DemoModal';
+import InteractiveVideoDemo from './components/InteractiveVideoDemo';
+import DemoVideo from './components/DemoVideo';
+import Project from './components/Project';
+import UserManagement from './components/UserManagement';
+import NewsletterManagement from './components/NewsletterManagement';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import RegisterPage from './pages/RegisterPage';
 
 
 const ChatPage = () => <div style={{ padding: '40px', textAlign: 'center' }}><h2>Chat with Doctor</h2><p>Secure messaging with healthcare providers.</p></div>;
-const RecordsPage = () => <div style={{ padding: '40px', textAlign: 'center' }}><h2>Medical Records</h2><p>Access your health records and prescriptions.</p></div>;
 const SupportPage = () => <div style={{ padding: '40px', textAlign: 'center' }}><h2>Support Center</h2><p>Get help with PatientCare platform.</p></div>;
+
+// Wrapper component to get doctor ID from current user
+const DoctorPatientRecordsWrapper: React.FC = () => {
+  const userData = localStorage.getItem('userData');
+  if (!userData) {
+    return <div>Please log in to view patient records</div>;
+  }
+  
+  const user = JSON.parse(userData);
+  const doctorId = user.id || user.email;
+  
+  return <DoctorPatientRecords doctorId={doctorId} />;
+};
 
 function App(): JSX.Element {
   const [user, setUser] = useState<{ name: string; email?: string; userType?: string; avatar?: string } | null>(null);
@@ -62,20 +91,34 @@ function App(): JSX.Element {
     // Check on mount
     checkAuth();
 
-    // Listen for storage changes (when user logs in/out in same tab)
+    // Listen for storage changes (when user logs in/out in different tab)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'userData' || e.key === 'authToken') {
         checkAuth();
       }
     };
 
+    // Listen for custom logout event (when user logs out in same tab)
+    const handleLogout = () => {
+      // Immediately clear user state
+      setUser(null);
+      // Clear any cached data
+      localStorage.removeItem('userData');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('redirectAfterLogin');
+      // Force re-check
+      checkAuth();
+    };
+
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('userLogout', handleLogout);
     
-    // Also check periodically in case of same-tab changes
+    // Also check periodically as fallback
     const interval = setInterval(checkAuth, 1000);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userLogout', handleLogout);
       clearInterval(interval);
     };
   }, []);
@@ -110,8 +153,8 @@ function App(): JSX.Element {
             </ProtectedRoute>
           } />
           <Route path="/manage-availability" element={
-            <ProtectedRoute message="Please log in as a doctor to manage availability">
-              <ManageAvailability />
+            <ProtectedRoute message="Please log in as a doctor or admin to manage availability">
+              <EnhancedAvailability />
             </ProtectedRoute>
           } />
           <Route path="/write-prescription" element={
@@ -126,7 +169,17 @@ function App(): JSX.Element {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/appointments" element={
             <ProtectedRoute message="Please log in to view your appointments">
-              {user?.userType === 'doctor' ? <UpcomingAppointments /> : <MyAppointmentsPage />}
+              {user?.userType === 'doctor' ? <DoctorAppointmentManager /> : <MyAppointmentsPage />}
+            </ProtectedRoute>
+          } />
+          <Route path="/manage-appointments" element={
+            <ProtectedRoute message="Please log in as a doctor to manage appointments">
+              <DoctorAppointmentManager />
+            </ProtectedRoute>
+          } />
+          <Route path="/upcoming-appointments" element={
+            <ProtectedRoute message="Please log in as a doctor to view upcoming appointments">
+              <UpcomingAppointments />
             </ProtectedRoute>
           } />
           <Route path="/doctor/:doctorId" element={<DoctorProfilePage />} />
@@ -137,7 +190,7 @@ function App(): JSX.Element {
           } />
           <Route path="/records" element={
             <ProtectedRoute message="Please log in to view your medical records">
-              <RecordsPage />
+              <PersonalMedicalRecords />
             </ProtectedRoute>
           } />
           <Route path="/dashboard" element={
@@ -150,6 +203,57 @@ function App(): JSX.Element {
               <ProfilePage />
             </ProtectedRoute>
           } />
+          <Route path="/patient-records" element={
+            <ProtectedRoute message="Please log in as a doctor or admin to view patient records">
+              <PatientRecords />
+            </ProtectedRoute>
+          } />
+          <Route path="/patient-records/:patientId" element={
+            <ProtectedRoute message="Please log in as a doctor to view patient details">
+              <DoctorPatientRecordsWrapper />
+            </ProtectedRoute>
+          } />
+          <Route path="/prescriptions" element={
+            <ProtectedRoute message="Please log in to view your prescriptions">
+              <ViewPrescriptions />
+            </ProtectedRoute>
+          } />
+          <Route path="/past-patients" element={
+            <ProtectedRoute message="Please log in as a doctor to view past patients">
+              <PastPatients />
+            </ProtectedRoute>
+          } />
+          <Route path="/leave-review/:doctorId" element={
+            <ProtectedRoute message="Please log in to leave a review">
+              <LeaveReview />
+            </ProtectedRoute>
+          } />
+          <Route path="/reviews/:doctorId" element={<ReviewDisplay />} />
+          <Route path="/patient-appointments" element={
+            <ProtectedRoute message="Please log in to view appointments">
+              <PatientAppointments />
+            </ProtectedRoute>
+          } />
+          <Route path="/demo" element={<DemoModal />} />
+          <Route path="/video-demo" element={<InteractiveVideoDemo />} />
+          <Route path="/demo-video" element={<DemoVideo />} />
+          <Route path="/project" element={<Project />} />
+          <Route path="/user-management" element={
+            <ProtectedRoute message="Please log in as an admin to manage users">
+              <UserManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/newsletter" element={
+            <ProtectedRoute message="Please log in as an admin to manage newsletter">
+              <NewsletterManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin-dashboard" element={
+            <ProtectedRoute message="Please log in as an admin to access admin dashboard">
+              <AdminDashboardPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/register" element={<RegisterPage />} />
         </Routes>
       </Router>
     </ToastProvider>

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { PatientRecord, patientRecordsStorage } from '../utils/patientRecordsStorage';
+import { inputValidation } from '../utils/inputValidation';
 
 interface AddPatientFormProps {
   doctorId: string;
@@ -7,23 +8,16 @@ interface AddPatientFormProps {
   onAdd: () => void;
 }
 
-interface PreviousPatient {
-  id: string;
-  name: string;
-  email: string;
-  appointmentDate: string;
-  appointmentType: string;
-}
+
 
 const AddPatientForm: React.FC<AddPatientFormProps> = ({ doctorId, onClose, onAdd }) => {
-  const [mode, setMode] = useState<'select' | 'new'>('select');
-  const [previousPatients, setPreviousPatients] = useState<PreviousPatient[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<PreviousPatient | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
   
   const [formData, setFormData] = useState({
     fullName: '',
     cprNumber: '',
+    age: '',
+    dateOfBirth: '',
+    gender: '' as '' | 'male' | 'female' | 'other',
     email: '',
     phoneNumber: '',
     height: '',
@@ -44,66 +38,41 @@ const AddPatientForm: React.FC<AddPatientFormProps> = ({ doctorId, onClose, onAd
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    loadPreviousPatients();
-  }, [doctorId]);
-
-  const loadPreviousPatients = () => {
-    try {
-      // Get completed appointments for this doctor
-      const appointmentStorageData = localStorage.getItem('patientcare_appointments');
-      if (!appointmentStorageData) return;
-      
-      const appointments = JSON.parse(appointmentStorageData);
-      const completedAppointments = appointments.filter((apt: any) => 
-        apt.doctorId === doctorId && apt.status === 'completed'
-      );
-      
-      // Get unique patients from completed appointments
-      const patientMap = new Map<string, PreviousPatient>();
-      completedAppointments.forEach((apt: any) => {
-        const patientKey = apt.patientId || apt.patientEmail;
-        if (!patientMap.has(patientKey)) {
-          patientMap.set(patientKey, {
-            id: patientKey,
-            name: apt.patientName,
-            email: apt.patientEmail,
-            appointmentDate: apt.date,
-            appointmentType: apt.type
-          });
-        }
-      });
-      
-      // Filter out patients who already have records
-      const existingRecords = patientRecordsStorage.getDoctorPatientRecords(doctorId);
-      const existingPatientIds = existingRecords.map(record => record.id);
-      const existingPatientEmails = existingRecords.map(record => record.contactInfo.email);
-      
-      const availablePatients = Array.from(patientMap.values()).filter(patient => 
-        !existingPatientIds.includes(patient.id) && 
-        !existingPatientEmails.includes(patient.email)
-      );
-      
-      setPreviousPatients(availablePatients);
-    } catch (error) {
-      console.error('Error loading previous patients:', error);
-    }
-  };
-
-  const handlePatientSelection = (patient: PreviousPatient) => {
-    setSelectedPatient(patient);
-    // Pre-populate available information
-    setFormData(prev => ({
-      ...prev,
-      fullName: patient.name,
-      email: patient.email,
-      // Leave other fields empty for the doctor to fill
-    }));
-    setMode('new'); // Switch to form mode
-  };
-
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let sanitizedValue = value;
+
+    // Apply appropriate validation based on field type
+    switch (field) {
+      case 'fullName':
+        sanitizedValue = inputValidation.sanitizeName(value);
+        break;
+      case 'email':
+        sanitizedValue = inputValidation.sanitizeEmail(value);
+        break;
+      case 'cprNumber':
+      case 'phoneNumber':
+      case 'age':
+      case 'height':
+      case 'weight':
+      case 'feet':
+      case 'inches':
+        sanitizedValue = inputValidation.sanitizeNumber(value);
+        break;
+      case 'street':
+      case 'city':
+        sanitizedValue = inputValidation.sanitizeText(value);
+        break;
+      case 'diagnoses':
+      case 'treatments':
+      case 'allergies':
+      case 'notes':
+        sanitizedValue = inputValidation.sanitizeMedicalText(value);
+        break;
+      default:
+        sanitizedValue = inputValidation.sanitizeText(value);
+    }
+
+    setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -135,10 +104,7 @@ const AddPatientForm: React.FC<AddPatientFormProps> = ({ doctorId, onClose, onAd
     return Object.keys(newErrors).length === 0;
   };
 
-  const filteredPatients = previousPatients.filter(patient => 
-    patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,6 +115,9 @@ const AddPatientForm: React.FC<AddPatientFormProps> = ({ doctorId, onClose, onAd
       const newPatient: Omit<PatientRecord, 'id' | 'dateCreated' | 'lastUpdated'> = {
         fullName: formData.fullName.trim(),
         cprNumber: formData.cprNumber.trim(),
+        age: parseInt(formData.age) || 0,
+        dateOfBirth: formData.dateOfBirth || undefined,
+        gender: formData.gender || undefined,
         numberOfVisits: 0,
         medicalHistory: {
           diagnoses: formData.diagnoses ? formData.diagnoses.split(',').map(d => d.trim()).filter(d => d) : [],
@@ -180,7 +149,8 @@ const AddPatientForm: React.FC<AddPatientFormProps> = ({ doctorId, onClose, onAd
             postalCode: formData.postalCode.trim()
           }
         },
-        doctorId
+        doctorId,
+        patientGlobalId: '' // Will be set by the storage system
       };
 
       patientRecordsStorage.addPatientRecord(newPatient);
@@ -223,51 +193,9 @@ const AddPatientForm: React.FC<AddPatientFormProps> = ({ doctorId, onClose, onAd
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {mode === 'new' && selectedPatient && (
-              <button
-                onClick={() => {
-                  setMode('select');
-                  setSelectedPatient(null);
-                  setFormData({
-                    fullName: '',
-                    cprNumber: '',
-                    email: '',
-                    phoneNumber: '',
-                    height: '',
-                    heightUnit: 'cm',
-                    feet: '',
-                    inches: '',
-                    weight: '',
-                    weightUnit: 'kg',
-                    street: '',
-                    city: '',
-                    governorate: '',
-                    postalCode: '',
-                    diagnoses: '',
-                    treatments: '',
-                    allergies: '',
-                    notes: ''
-                  });
-                }}
-                style={{
-                  padding: '8px',
-                  backgroundColor: '#f3f4f6',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  color: '#374151'
-                }}
-              >
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-            )}
-            <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: 0 }}>
-              {mode === 'select' ? 'Add Patient Record' : selectedPatient ? `Add Record for ${selectedPatient.name}` : 'Add New Patient'}
-            </h2>
-          </div>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: 0 }}>
+            Add New Patient
+          </h2>
           <button
             onClick={onClose}
             style={{
@@ -285,168 +213,8 @@ const AddPatientForm: React.FC<AddPatientFormProps> = ({ doctorId, onClose, onAd
           </button>
         </div>
 
-        {/* Patient Selection Mode */}
-        {mode === 'select' && (
-          <div style={{ padding: '24px' }}>
-            <div style={{ marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>
-                Select Patient
-              </h3>
-              <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>
-                Choose from patients you've previously seen, or create a completely new patient record.
-              </p>
-              
-              {/* Mode Selection */}
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-                <button
-                  onClick={() => setMode('select')}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#0d9488',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Previous Patients
-                </button>
-                <button
-                  onClick={() => setMode('new')}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#f3f4f6',
-                    color: '#374151',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}
-                >
-                  New Patient
-                </button>
-              </div>
-            </div>
-
-            {/* Search Bar */}
-            {previousPatients.length > 0 && (
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ position: 'relative' }}>
-                  <svg style={{
-                    position: 'absolute',
-                    left: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '16px',
-                    height: '16px',
-                    color: '#9ca3af'
-                  }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="Search patients by name or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px 10px 40px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px'
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Previous Patients List */}
-            {previousPatients.length > 0 ? (
-              <div style={{
-                maxHeight: '300px',
-                overflowY: 'auto',
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px'
-              }}>
-                {filteredPatients.map((patient) => (
-                    <div
-                      key={patient.id}
-                      onClick={() => handlePatientSelection(patient)}
-                      style={{
-                        padding: '16px',
-                        borderBottom: '1px solid #f3f4f6',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#f9fafb';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'white';
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 4px 0' }}>
-                            {patient.name}
-                          </h4>
-                          <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 4px 0' }}>
-                            {patient.email}
-                          </p>
-                          <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
-                            Last appointment: {new Date(patient.appointmentDate).toLocaleDateString()} ({patient.appointmentType})
-                          </p>
-                        </div>
-                        <svg width="20" height="20" fill="none" stroke="#0d9488" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            ) : (
-              <div style={{
-                textAlign: 'center',
-                padding: '40px 20px',
-                backgroundColor: '#f9fafb',
-                borderRadius: '8px',
-                border: '1px solid #e5e7eb'
-              }}>
-                <svg width="48" height="48" fill="#d1d5db" viewBox="0 0 24 24" style={{ margin: '0 auto 16px' }}>
-                  <path d="M16 4c0-1.11.89-2 2-2s2 .89 2 2-.89 2-2 2-2-.89-2-2M4 18v-4h3v4h2v-7.5c0-.83.67-1.5 1.5-1.5S12 9.67 12 10.5V11h2.5c.83 0 1.5.67 1.5 1.5V18h2v4H4v-4z"/>
-                </svg>
-                <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  No Previous Patients
-                </h4>
-                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>
-                  You haven't completed any appointments yet, or all previous patients already have records.
-                </p>
-                <button
-                  onClick={() => setMode('new')}
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: '#0d9488',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Create New Patient Record
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Form */}
-        {mode === 'new' && (
-          <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
+        <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
           {errors.submit && (
             <div style={{
               padding: '12px',
@@ -457,28 +225,6 @@ const AddPatientForm: React.FC<AddPatientFormProps> = ({ doctorId, onClose, onAd
               marginBottom: '20px'
             }}>
               {errors.submit}
-            </div>
-          )}
-
-          {selectedPatient && (
-            <div style={{
-              padding: '12px',
-              backgroundColor: '#eff6ff',
-              border: '1px solid #bfdbfe',
-              borderRadius: '8px',
-              marginBottom: '20px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <svg width="16" height="16" fill="#2563eb" viewBox="0 0 24 24">
-                  <path d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/>
-                </svg>
-                <span style={{ fontSize: '14px', color: '#1e40af', fontWeight: '500' }}>
-                  Creating record for existing patient: {selectedPatient.name}
-                </span>
-              </div>
-              <p style={{ fontSize: '12px', color: '#1e40af', margin: '4px 0 0 24px' }}>
-                Name and email have been pre-filled. Please complete the remaining required fields.
-              </p>
             </div>
           )}
 
@@ -535,6 +281,71 @@ const AddPatientForm: React.FC<AddPatientFormProps> = ({ doctorId, onClose, onAd
                     {errors.cprNumber}
                   </p>
                 )}
+              </div>
+
+              {/* Age */}
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                  Age
+                </label>
+                <input
+                  type="number"
+                  value={formData.age}
+                  onChange={(e) => handleInputChange('age', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                  placeholder="Age in years"
+                  min="0"
+                  max="150"
+                />
+              </div>
+
+              {/* Date of Birth */}
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                  Date of Birth
+                </label>
+                <input
+                  type="date"
+                  value={formData.dateOfBirth}
+                  onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+
+              {/* Gender */}
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                  Gender
+                </label>
+                <select
+                  value={formData.gender}
+                  onChange={(e) => handleInputChange('gender', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    backgroundColor: 'white'
+                  }}
+                >
+                  <option value="">Select gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
               </div>
             </div>
           </div>
@@ -900,7 +711,6 @@ const AddPatientForm: React.FC<AddPatientFormProps> = ({ doctorId, onClose, onAd
             </button>
           </div>
         </form>
-        )}
       </div>
     </div>
   );

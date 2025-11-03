@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from './Toast';
 import { appointmentStorage } from '../utils/appointmentStorage';
 import { availabilityStorage } from '../utils/availabilityStorage';
+import { patientRecordsStorage } from '../utils/patientRecordsStorage';
+import { userStorage } from '../utils/userStorage';
+import { inputValidation } from '../utils/inputValidation';
 
 interface BookAppointmentDemoProps {
   doctorId: string;
@@ -17,6 +20,20 @@ const BookAppointmentDemo: React.FC<BookAppointmentDemoProps> = ({ doctorId, doc
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [doctorFee, setDoctorFee] = useState<number>(25); // Default fallback fee
+
+  // Fetch doctor's consultation fee
+  useEffect(() => {
+    const fetchDoctorFee = () => {
+      const allUsers = userStorage.getAllUsers();
+      const doctor = allUsers.find(user => user.id === doctorId && user.userType === 'doctor');
+      if (doctor && doctor.consultationFee) {
+        setDoctorFee(doctor.consultationFee);
+      }
+    };
+    
+    fetchDoctorFee();
+  }, [doctorId]);
 
   // Update available time slots when date changes
   useEffect(() => {
@@ -80,7 +97,7 @@ const BookAppointmentDemo: React.FC<BookAppointmentDemoProps> = ({ doctorId, doc
     if (!selectedDate) return [];
     
     // Use the enhanced availabilityStorage method that handles both weekly schedule and calendar overrides
-    return availabilityStorage.getAvailableSlots(doctorId, selectedDate, 30);
+    const availableSlots = availabilityStorage.getAvailableSlots(doctorId, selectedDate, 30);
     
     // Get existing appointments for this doctor on the selected date
     const existingAppointments = appointmentStorage.getAllAppointments();
@@ -90,28 +107,13 @@ const BookAppointmentDemo: React.FC<BookAppointmentDemoProps> = ({ doctorId, doc
         apt.date === selectedDate && 
         (apt.status === 'confirmed' || apt.status === 'pending')
       )
-      .map(apt => apt.time);
+      .map((apt: any) => apt.time);
     
     // Return only unbooked time slots from doctor's available times
-    return availableSlots.filter(time => !bookedTimes.includes(time));
+    return availableSlots.filter((time: string) => !bookedTimes.includes(time));
   };
 
-  // Helper function to generate 30-minute time slots between start and end time
-  const generateTimeSlotsInRange = (startTime: string, endTime: string): string[] => {
-    const slots: string[] = [];
-    const start = new Date(`2000-01-01T${startTime}:00`);
-    const end = new Date(`2000-01-01T${endTime}:00`);
-    
-    const current = new Date(start);
-    
-    while (current < end) {
-      const timeString = current.toTimeString().slice(0, 5); // Format as HH:MM
-      slots.push(timeString);
-      current.setMinutes(current.getMinutes() + 30); // 30-minute intervals
-    }
-    
-    return slots;
-  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,10 +148,57 @@ const BookAppointmentDemo: React.FC<BookAppointmentDemoProps> = ({ doctorId, doc
         type: appointmentType,
         status: 'pending',
         notes: notes || `${appointmentType} appointment`,
-        fee: 25
+        fee: doctorFee
       });
 
       if (newAppointment) {
+        // Check if patient record already exists for this doctor
+        const existingRecord = patientRecordsStorage.getPatientRecordByPatientAndDoctor(
+          user.id || user.email, 
+          doctorId
+        );
+
+        if (!existingRecord) {
+          // Create a comprehensive patient record using user data
+          try {
+            // Get full user data from localStorage
+            const userData = localStorage.getItem('userData');
+            const fullUserData = userData ? JSON.parse(userData) : user;
+            
+            const newPatientRecord = patientRecordsStorage.createPatientRecordFromUserData({
+              patientId: fullUserData.id || fullUserData.email,
+              patientName: fullUserData.name,
+              patientEmail: fullUserData.email,
+              cprNumber: fullUserData.cpr || '',
+              phoneNumber: fullUserData.phone || '',
+              doctorId: doctorId
+            });
+            
+            console.log('Comprehensive patient record created automatically:', newPatientRecord.id);
+          } catch (recordError) {
+            console.error('Error creating patient record:', recordError);
+            // Fallback to basic record creation
+            try {
+              patientRecordsStorage.createPatientRecordFromAppointment({
+                patientId: user.id || user.email,
+                patientName: user.name,
+                patientEmail: user.email,
+                doctorId: doctorId
+              });
+            } catch (fallbackError) {
+              console.error('Error creating fallback patient record:', fallbackError);
+            }
+          }
+        } else {
+          // Update visit count for existing patient record
+          try {
+            patientRecordsStorage.incrementVisitCount(existingRecord.id);
+            console.log('Visit count incremented for existing patient record');
+          } catch (recordError) {
+            console.error('Error updating visit count:', recordError);
+          }
+        }
+
         showToast('Appointment booked successfully! Awaiting doctor approval.', 'success');
         onClose();
       } else {
@@ -378,7 +427,7 @@ const BookAppointmentDemo: React.FC<BookAppointmentDemoProps> = ({ doctorId, doc
               </label>
               <textarea
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={(e) => inputValidation.handleTextInput(e, setNotes, 'medical')}
                 placeholder="Describe your symptoms or reason for visit..."
                 rows={3}
                 style={{
@@ -416,7 +465,7 @@ const BookAppointmentDemo: React.FC<BookAppointmentDemoProps> = ({ doctorId, doc
                   fontWeight: '700',
                   color: '#111827'
                 }}>
-                  25 BHD
+                  {doctorFee} BHD
                 </span>
               </div>
             </div>

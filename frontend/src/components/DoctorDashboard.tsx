@@ -6,6 +6,7 @@ import BackToTopButton from './BackToTopButton';
 import { routes } from '../utils/navigation';
 import { useToast } from './Toast';
 import { appointmentStorage, Appointment } from '../utils/appointmentStorage';
+import { appointmentManager } from '../utils/appointmentManager';
 
 interface DoctorDashboardProps {
   user: {
@@ -62,21 +63,53 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
     setPastPatients(pastAppointments);
   };
 
-  const handleConfirmAppointment = (appointmentId: string) => {
-    if (appointmentStorage.confirmAppointment(appointmentId)) {
-      showToast('Appointment confirmed successfully', 'success');
-      loadAppointments();
-    } else {
-      showToast('Failed to confirm appointment', 'error');
+  const handleApproveAppointment = (appointmentId: string) => {
+    try {
+      const userData = localStorage.getItem('userData');
+      const user = userData ? JSON.parse(userData) : null;
+      const userId = user?.id || user?.email || '';
+      
+      const success = appointmentManager.updateAppointmentStatus(
+        appointmentId,
+        'confirmed',
+        userId,
+        'Appointment approved by doctor'
+      );
+      
+      if (success) {
+        showToast('Appointment approved successfully', 'success');
+        loadAppointments();
+      } else {
+        showToast('Failed to approve appointment', 'error');
+      }
+    } catch (error) {
+      console.error('Error approving appointment:', error);
+      showToast('Error approving appointment', 'error');
     }
   };
 
   const handleDenyAppointment = (appointmentId: string) => {
-    if (appointmentStorage.cancelAppointment(appointmentId, 'Denied by doctor')) {
-      showToast('Appointment denied', 'info');
-      loadAppointments();
-    } else {
-      showToast('Failed to deny appointment', 'error');
+    try {
+      const userData = localStorage.getItem('userData');
+      const user = userData ? JSON.parse(userData) : null;
+      const userId = user?.id || user?.email || '';
+      
+      const success = appointmentManager.updateAppointmentStatus(
+        appointmentId,
+        'rejected',
+        userId,
+        'Appointment declined by doctor'
+      );
+      
+      if (success) {
+        showToast('Appointment declined', 'info');
+        loadAppointments();
+      } else {
+        showToast('Failed to decline appointment', 'error');
+      }
+    } catch (error) {
+      console.error('Error declining appointment:', error);
+      showToast('Error declining appointment', 'error');
     }
   };
 
@@ -405,56 +438,59 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
                           "{appointment.notes}"
                         </p>
                       )}
-                      <div style={{
-                        display: 'flex',
-                        gap: '8px',
-                        justifyContent: 'flex-end'
-                      }}>
-                        <button
-                          onClick={() => handleDenyAppointment(appointment.id)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#fee2e2',
-                            color: '#dc2626',
-                            border: '1px solid #fecaca',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '500',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#fecaca';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#fee2e2';
-                          }}
-                        >
-                          Deny
-                        </button>
-                        <button
-                          onClick={() => handleConfirmAppointment(appointment.id)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#0d9488',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '500',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#0f766e';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = '#0d9488';
-                          }}
-                        >
-                          Confirm
-                        </button>
-                      </div>
+                      {appointment.status === 'pending' && (
+                        <div style={{
+                          display: 'flex',
+                          gap: '8px',
+                          justifyContent: 'flex-end',
+                          marginTop: '12px'
+                        }}>
+                          <button
+                            onClick={() => handleDenyAppointment(appointment.id)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#fee2e2',
+                              color: '#dc2626',
+                              border: '1px solid #fecaca',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#fecaca';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#fee2e2';
+                            }}
+                          >
+                            Deny
+                          </button>
+                          <button
+                            onClick={() => handleApproveAppointment(appointment.id)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#0d9488',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#0f766e';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#0d9488';
+                            }}
+                          >
+                            Approve
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -483,7 +519,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
                   Previous Patients
                 </h2>
                 <button
-                  onClick={() => navigate('/patient-records')}
+                  onClick={() => navigate('/appointments')}
                   style={{
                     padding: '6px 12px',
                     backgroundColor: '#0d9488',
@@ -508,7 +544,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
                     <p>No previous patients</p>
                   </div>
                 ) : (
-                  pastPatients.slice(0, 5).map((appointment) => (
+                  pastPatients.slice(0, 4).map((appointment) => (
                     <div key={appointment.id} style={{
                       padding: '16px',
                       backgroundColor: '#f9fafb',

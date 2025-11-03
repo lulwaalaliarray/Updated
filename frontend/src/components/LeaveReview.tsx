@@ -5,6 +5,7 @@ import Footer from './Footer';
 import { useToast } from './Toast';
 import { reviewStorage } from '../utils/reviewStorage';
 import { appointmentStorage } from '../utils/appointmentStorage';
+import { inputValidation } from '../utils/inputValidation';
 
 const LeaveReview: React.FC = () => {
   const { doctorId } = useParams<{ doctorId: string }>();
@@ -522,8 +523,9 @@ const LeaveReview: React.FC = () => {
                 value={comment}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 500) {
-                    setComment(value);
+                  const sanitizedValue = inputValidation.sanitizeText(value);
+                  if (sanitizedValue.length <= 500) {
+                    setComment(sanitizedValue);
                   }
                 }}
                 placeholder="Please share your experience with this doctor. What did you like? What could be improved?"

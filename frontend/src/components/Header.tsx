@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { handleNavigation, routes, isLoggedIn } from '../utils/navigation';
+import { useNavigate } from 'react-router-dom';
+import { handleNavigation, routes, isLoggedIn, logout } from '../utils/navigation';
 import { useToast } from './Toast';
 import './Header.css';
 
@@ -16,9 +16,8 @@ const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [canGoBack, setCanGoBack] = useState(false);
+
   const navigate = useNavigate();
-  const location = useLocation();
   const { showToast } = useToast();
 
   // Check for user authentication
@@ -35,10 +34,7 @@ const Header: React.FC = () => {
     }
   }, []);
 
-  // Check if we can go back
-  useEffect(() => {
-    setCanGoBack(window.history.length > 1 && location.pathname !== '/');
-  }, [location]);
+
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -73,23 +69,29 @@ const Header: React.FC = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userData');
-    localStorage.removeItem('redirectAfterLogin');
+    // Use centralized logout function
+    logout();
+    
+    // Clear local component state immediately
     setUser(null);
-    showToast('You have been logged out', 'info');
     
-    // Dispatch custom event to notify other components
-    window.dispatchEvent(new CustomEvent('userLogout'));
-    
-    navigate(routes.home);
+    // Close any open menus
     setIsMenuOpen(false);
     setShowDropdown(false);
+    
+    // Show logout message
+    showToast('You have been logged out successfully', 'info');
+    
+    // Force immediate navigation to home page
+    navigate(routes.home, { replace: true });
+    
+    // Force a page reload to ensure all state is cleared
+    setTimeout(() => {
+      window.location.href = routes.home;
+    }, 100);
   };
 
-  const handleGoBack = () => {
-    navigate(-1);
-  };
+
 
   return (
     <header style={{ 
@@ -108,38 +110,9 @@ const Header: React.FC = () => {
         justifyContent: 'space-between',
         height: '70px'
       }}>
-        {/* Logo and Back Button */}
+        {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {canGoBack && (
-            <button
-              onClick={handleGoBack}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '40px',
-                height: '40px',
-                backgroundColor: '#f3f4f6',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e5e7eb';
-                e.currentTarget.style.borderColor = '#0d9488';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#f3f4f6';
-                e.currentTarget.style.borderColor = '#d1d5db';
-              }}
-              title="Go back"
-            >
-              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </button>
-          )}
+
           
           <button 
             onClick={() => handleNavClick(routes.home)}

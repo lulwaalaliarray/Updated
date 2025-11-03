@@ -7,6 +7,17 @@ export const isLoggedIn = (): boolean => {
   return !!(token && userData);
 };
 
+// Logout function
+export const logout = (): void => {
+  // Clear all authentication data
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('userData');
+  localStorage.removeItem('redirectAfterLogin');
+  
+  // Dispatch custom event to notify all components
+  window.dispatchEvent(new CustomEvent('userLogout'));
+};
+
 // Navigation helper function
 export const handleNavigation = (
   navigate: NavigateFunction,
@@ -43,6 +54,9 @@ export const routes = {
   doctors: '/doctors',
   dashboard: '/dashboard',
   profile: '/profile',
+  manageAvailability: '/manage-availability',
+  prescriptions: '/prescriptions',
+  pastPatients: '/past-patients',
   // Product pages
   features: '/features',
   findDoctors: '/find-doctors',

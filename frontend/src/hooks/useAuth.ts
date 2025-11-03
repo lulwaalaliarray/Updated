@@ -93,6 +93,9 @@ export const useAuth = () => {
       isLoading: false,
       isAuthenticated: false
     });
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('userLogout'));
   };
 
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {

@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import { routes } from '../utils/navigation';
 import { userStorage, initializeDemoUsers } from '../utils/userStorage';
+import { initializeDemoPrescriptions } from '../utils/prescriptionStorage';
+import { inputValidation } from '../utils/inputValidation';
 
 const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -14,18 +16,29 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  // Initialize demo users on component mount
+  // Initialize demo users and prescriptions on component mount
   useEffect(() => {
     initializeDemoUsers();
+    initializeDemoPrescriptions();
   }, []);
 
   // Get user statistics for display
   const userStats = userStorage.getUserCount();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    let sanitizedValue = value;
+
+    // Apply appropriate validation based on field type
+    if (name === 'email') {
+      sanitizedValue = inputValidation.sanitizeEmail(value);
+    } else {
+      sanitizedValue = inputValidation.sanitizeText(value);
+    }
+
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: sanitizedValue
     });
   };
 

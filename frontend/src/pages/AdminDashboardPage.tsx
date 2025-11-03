@@ -14,10 +14,6 @@ import {
   CircularProgress
 } from '@mui/material';
 import {
-  People as PeopleIcon,
-  Event as EventIcon,
-  Payment as PaymentIcon,
-  Star as StarIcon,
   TrendingUp as TrendingUpIcon,
   Warning as WarningIcon
 } from '@mui/icons-material';
@@ -28,6 +24,7 @@ import { DoctorVerification } from '../components/Admin/DoctorVerification';
 import { PaymentMonitoring } from '../components/Admin/PaymentMonitoring';
 import { AppointmentManagement } from '../components/Admin/AppointmentManagement';
 import { SystemHealth } from '../components/Admin/SystemHealth';
+import Header from '../components/Header';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -104,7 +101,9 @@ export const AdminDashboardPage: React.FC = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      <Header />
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Admin Dashboard
       </Typography>
@@ -181,5 +180,6 @@ export const AdminDashboardPage: React.FC = () => {
         </TabPanel>
       </Paper>
     </Container>
+    </div>
   );
 };

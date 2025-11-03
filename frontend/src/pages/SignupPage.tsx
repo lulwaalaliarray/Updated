@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import { routes } from '../utils/navigation';
 import { userStorage, User } from '../utils/userStorage';
+import { inputValidation } from '../utils/inputValidation';
 
 const SignupPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -32,9 +33,35 @@ const SignupPage: React.FC = () => {
   const { showToast } = useToast();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    let sanitizedValue = value;
+
+    // Apply appropriate validation based on field type
+    switch (name) {
+      case 'name':
+        sanitizedValue = inputValidation.sanitizeName(value);
+        break;
+      case 'email':
+        sanitizedValue = inputValidation.sanitizeEmail(value);
+        break;
+      case 'cpr':
+        sanitizedValue = inputValidation.sanitizeNumber(value);
+        break;
+      case 'specialization':
+      case 'experience':
+      case 'qualifications':
+        sanitizedValue = inputValidation.sanitizeMedicalText(value);
+        break;
+      case 'consultationFee':
+        sanitizedValue = value.replace(/[^\d.]/g, ''); // Only digits and decimal point
+        break;
+      default:
+        sanitizedValue = inputValidation.sanitizeText(value);
+    }
+
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: sanitizedValue
     });
   };
 
@@ -119,6 +146,13 @@ const SignupPage: React.FC = () => {
         return;
       }
 
+      // Check if CPR already exists
+      if (userStorage.cprExists(formData.cpr)) {
+        showToast('An account with this CPR number already exists', 'error');
+        setIsLoading(false);
+        return;
+      }
+
       // Create user credentials object
       const newUser: User = {
         id: Date.now().toString(),
@@ -127,7 +161,7 @@ const SignupPage: React.FC = () => {
         password: formData.password, // In real app, this would be hashed
         userType: formData.userType as 'patient' | 'doctor',
         cpr: formData.cpr,
-        status: 'active',
+        status: formData.userType === 'doctor' ? 'verified' : 'active',
         createdAt: new Date().toISOString(),
         ...(formData.userType === 'doctor' && {
           specialization: formData.specialization,

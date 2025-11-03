@@ -5,6 +5,7 @@ import Footer from './Footer';
 import { useToast } from './Toast';
 import { userStorage, User } from '../utils/userStorage';
 import { appointmentStorage } from '../utils/appointmentStorage';
+import { inputValidation } from '../utils/inputValidation';
 
 const PastPatients: React.FC = () => {
   const navigate = useNavigate();
@@ -199,7 +200,7 @@ const PastPatients: React.FC = () => {
                 type="text"
                 placeholder="Search by name, email, or CPR..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => inputValidation.handleTextInput(e, setSearchTerm, 'text')}
                 style={{
                   width: '100%',
                   padding: '12px 12px 12px 44px',

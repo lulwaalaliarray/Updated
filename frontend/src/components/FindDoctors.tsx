@@ -8,6 +8,7 @@ import Footer from './Footer';
 import DoctorCard from './DoctorCard';
 import BookAppointmentDemo from './BookAppointmentDemo';
 import { reviewStorage } from '../utils/reviewStorage';
+import { inputValidation } from '../utils/inputValidation';
 
 // Create a unified doctor type for both registered and mock doctors
 type UnifiedDoctor = User & {
@@ -926,7 +927,7 @@ const FindDoctors: React.FC = () => {
                   type="text"
                   placeholder="Search doctors, specialties, hospitals..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => inputValidation.handleTextInput(e, setSearchTerm, 'text')}
                   style={{
                     width: '100%',
                     padding: '12px 12px 12px 44px',

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { routes } from '../utils/navigation';
+import { routes, isLoggedIn } from '../utils/navigation';
 import { useToast } from './Toast';
 import Header from './Header';
 import Footer from './Footer';
@@ -22,6 +22,33 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
   const navigate = useNavigate();
   const { showToast } = useToast();
+
+  // Listen for logout events and redirect immediately
+  useEffect(() => {
+    const handleLogout = () => {
+      navigate('/', { replace: true });
+    };
+
+    // Check if user is still logged in
+    const checkAuth = () => {
+      if (!isLoggedIn()) {
+        navigate('/', { replace: true });
+      }
+    };
+
+    // Check immediately
+    checkAuth();
+
+    window.addEventListener('userLogout', handleLogout);
+    
+    // Also check periodically
+    const interval = setInterval(checkAuth, 500);
+    
+    return () => {
+      window.removeEventListener('userLogout', handleLogout);
+      clearInterval(interval);
+    };
+  }, [navigate]);
   
   // State for dashboard statistics
   const [monthlyStats, setMonthlyStats] = useState({
@@ -437,6 +464,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   };
 
   const quickActions = getQuickActions();
+
+  // Don't render dashboard if user is not logged in
+  if (!isLoggedIn()) {
+    return null;
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>

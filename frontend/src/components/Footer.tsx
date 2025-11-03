@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { newsletterStorage } from '../utils/newsletterStorage';
 import { routes } from '../utils/navigation';
+import { inputValidation } from '../utils/inputValidation';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -305,7 +306,7 @@ const Footer: React.FC = () => {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => inputValidation.handleTextInput(e, setEmail, 'email')}
                 placeholder="Enter your email"
                 disabled={isSubmitting}
                 style={{

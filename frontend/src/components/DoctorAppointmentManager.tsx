@@ -5,6 +5,7 @@ import Footer from './Footer';
 import { useToast } from './Toast';
 import { appointmentStorage, Appointment } from '../utils/appointmentStorage';
 import { appointmentManager } from '../utils/appointmentManager';
+import { inputValidation } from '../utils/inputValidation';
 
 const DoctorAppointmentManager: React.FC = () => {
   const navigate = useNavigate();
@@ -60,53 +61,7 @@ const DoctorAppointmentManager: React.FC = () => {
     }
   };
 
-  const handleApproveAppointment = (appointmentId: string) => {
-    try {
-      const userData = localStorage.getItem('userData');
-      const user = userData ? JSON.parse(userData) : null;
-      const userId = user?.id || user?.email || '';
-      
-      const success = appointmentManager.updateAppointmentStatus(
-        appointmentId,
-        'confirmed',
-        userId,
-        'Approved by doctor'
-      );
-      
-      if (success) {
-        showToast('Appointment approved successfully', 'success');
-      } else {
-        showToast('Failed to approve appointment', 'error');
-      }
-    } catch (error) {
-      console.error('Error approving appointment:', error);
-      showToast('Error approving appointment', 'error');
-    }
-  };
 
-  const handleRejectAppointment = (appointmentId: string) => {
-    try {
-      const userData = localStorage.getItem('userData');
-      const user = userData ? JSON.parse(userData) : null;
-      const userId = user?.id || user?.email || '';
-      
-      const success = appointmentManager.updateAppointmentStatus(
-        appointmentId,
-        'rejected',
-        userId,
-        'Declined by doctor'
-      );
-      
-      if (success) {
-        showToast('Appointment declined', 'info');
-      } else {
-        showToast('Failed to decline appointment', 'error');
-      }
-    } catch (error) {
-      console.error('Error declining appointment:', error);
-      showToast('Error declining appointment', 'error');
-    }
-  };
 
   const handleCompleteAppointment = (appointmentId: string) => {
     const appointment = appointments.find(apt => apt.id === appointmentId);
@@ -177,6 +132,56 @@ const DoctorAppointmentManager: React.FC = () => {
     } catch (error) {
       console.error('Error completing appointment:', error);
       showToast('Error completing appointment', 'error');
+    }
+  };
+
+  const handleApproveAppointment = (appointmentId: string) => {
+    try {
+      const userData = localStorage.getItem('userData');
+      const user = userData ? JSON.parse(userData) : null;
+      const userId = user?.id || user?.email || '';
+      
+      const success = appointmentManager.updateAppointmentStatus(
+        appointmentId,
+        'confirmed',
+        userId,
+        'Appointment approved by doctor'
+      );
+      
+      if (success) {
+        showToast('Appointment approved successfully', 'success');
+        loadDoctorAppointments();
+      } else {
+        showToast('Failed to approve appointment', 'error');
+      }
+    } catch (error) {
+      console.error('Error approving appointment:', error);
+      showToast('Error approving appointment', 'error');
+    }
+  };
+
+  const handleDenyAppointment = (appointmentId: string) => {
+    try {
+      const userData = localStorage.getItem('userData');
+      const user = userData ? JSON.parse(userData) : null;
+      const userId = user?.id || user?.email || '';
+      
+      const success = appointmentManager.updateAppointmentStatus(
+        appointmentId,
+        'rejected',
+        userId,
+        'Appointment declined by doctor'
+      );
+      
+      if (success) {
+        showToast('Appointment declined', 'info');
+        loadDoctorAppointments();
+      } else {
+        showToast('Failed to decline appointment', 'error');
+      }
+    } catch (error) {
+      console.error('Error declining appointment:', error);
+      showToast('Error declining appointment', 'error');
     }
   };
 
@@ -642,53 +647,55 @@ const DoctorAppointmentManager: React.FC = () => {
                       </button>
 
                       {appointment.status === 'pending' && (
-                        <>
+                        <div style={{
+                          display: 'flex',
+                          gap: '8px'
+                        }}>
+                          <button
+                            onClick={() => handleDenyAppointment(appointment.id)}
+                            style={{
+                              padding: '8px 16px',
+                              backgroundColor: '#fee2e2',
+                              color: '#dc2626',
+                              border: '1px solid #fecaca',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              fontWeight: '500',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#fecaca';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#fee2e2';
+                            }}
+                          >
+                            Deny
+                          </button>
                           <button
                             onClick={() => handleApproveAppointment(appointment.id)}
                             style={{
                               padding: '8px 16px',
+                              backgroundColor: '#0d9488',
+                              color: 'white',
                               border: 'none',
                               borderRadius: '6px',
-                              backgroundColor: '#059669',
-                              color: 'white',
                               fontSize: '14px',
                               fontWeight: '500',
                               cursor: 'pointer',
                               transition: 'all 0.2s'
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#047857';
+                              e.currentTarget.style.backgroundColor = '#0f766e';
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = '#059669';
+                              e.currentTarget.style.backgroundColor = '#0d9488';
                             }}
                           >
                             Approve
                           </button>
-                          
-                          <button
-                            onClick={() => handleRejectAppointment(appointment.id)}
-                            style={{
-                              padding: '8px 16px',
-                              border: '1px solid #dc2626',
-                              borderRadius: '6px',
-                              backgroundColor: 'white',
-                              color: '#dc2626',
-                              fontSize: '14px',
-                              fontWeight: '500',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#fef2f2';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = 'white';
-                            }}
-                          >
-                            Decline
-                          </button>
-                        </>
+                        </div>
                       )}
                       
                       {appointment.status === 'confirmed' && isUpcoming && (
@@ -880,8 +887,9 @@ const DoctorAppointmentManager: React.FC = () => {
                 value={appointmentDetails}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 500) {
-                    setAppointmentDetails(value);
+                  const sanitizedValue = inputValidation.sanitizeMedicalText(value);
+                  if (sanitizedValue.length <= 500) {
+                    setAppointmentDetails(sanitizedValue);
                   }
                 }}
                 placeholder="e.g., Patient presented with chest pain. Conducted ECG and blood tests. Diagnosed with mild anxiety. Prescribed medication and recommended lifestyle changes. Follow-up in 2 weeks."

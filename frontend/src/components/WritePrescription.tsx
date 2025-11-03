@@ -6,6 +6,7 @@ import BackToTopButton from './BackToTopButton';
 import { useToast } from './Toast';
 import { prescriptionStorage } from '../utils/prescriptionStorage';
 import { isLoggedIn } from '../utils/navigation';
+import { inputValidation } from '../utils/inputValidation';
 
 const WritePrescription: React.FC = () => {
   const navigate = useNavigate();
@@ -102,10 +103,27 @@ const WritePrescription: React.FC = () => {
   };
 
   const handleMedicationChange = (index: number, field: string, value: string) => {
+    let sanitizedValue = value;
+
+    // Apply appropriate validation based on field type
+    switch (field) {
+      case 'name':
+        sanitizedValue = inputValidation.sanitizeMedicalText(value);
+        break;
+      case 'dosage':
+      case 'frequency':
+      case 'duration':
+      case 'instructions':
+        sanitizedValue = inputValidation.sanitizeMedicalText(value);
+        break;
+      default:
+        sanitizedValue = inputValidation.sanitizeText(value);
+    }
+
     const updatedMedications = [...medications];
     updatedMedications[index] = {
       ...updatedMedications[index],
-      [field]: value
+      [field]: sanitizedValue
     };
     setMedications(updatedMedications);
   };
@@ -431,7 +449,7 @@ const WritePrescription: React.FC = () => {
               <input
                 type="text"
                 value={diagnosis}
-                onChange={(e) => setDiagnosis(e.target.value)}
+                onChange={(e) => inputValidation.handleTextInput(e, setDiagnosis, 'medical')}
                 placeholder="Enter the diagnosis"
                 style={{
                   width: '100%',
@@ -688,7 +706,7 @@ const WritePrescription: React.FC = () => {
               </label>
               <textarea
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={(e) => inputValidation.handleTextInput(e, setNotes, 'medical')}
                 placeholder="Any additional instructions or notes for the patient"
                 rows={4}
                 style={{

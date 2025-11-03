@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { routes } from '../utils/navigation';
 import { useToast } from '../components/Toast';
 import { userStorage } from '../utils/userStorage';
+import Header from '../components/Header';
 
 interface User {
   id: string;
@@ -67,12 +68,7 @@ const ProfilePage: React.FC = () => {
     }
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userData');
-    showToast('Logged out successfully', 'success');
-    navigate(routes.home);
-  };
+
 
   const handleDeleteAccount = () => {
     setShowDeleteConfirm(true);
@@ -120,94 +116,7 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
-      {/* Header */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '20px 0'
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          padding: '0 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          {/* Logo and Title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              backgroundColor: '#0d9488',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <svg width="28" height="28" fill="white" viewBox="0 0 24 24">
-                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14h-4v-4h4v4zm0-6h-4V7h4v4z"/>
-              </svg>
-            </div>
-            <div>
-              <h1 style={{
-                fontSize: '24px',
-                fontWeight: '700',
-                color: '#111827',
-                margin: 0
-              }}>
-                PatientCare Profile
-              </h1>
-              <p style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                margin: 0
-              }}>
-                Manage your account
-              </p>
-            </div>
-          </div>
-
-          {/* User Info and Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ textAlign: 'right' }}>
-              <p style={{
-                fontSize: '16px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                {user.name}
-              </p>
-              <p style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                margin: 0
-              }}>
-                {user.userType === 'doctor' ? 'Doctor' : 'Patient'} • {user.email}
-              </p>
-            </div>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              backgroundColor: '#f0fdfa',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '2px solid #0d9488'
-            }}>
-              <span style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#0d9488'
-              }}>
-                {user.name.charAt(0).toUpperCase()}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Header />
 
       {/* Main Content */}
       <div style={{
@@ -248,7 +157,7 @@ const ProfilePage: React.FC = () => {
             flexWrap: 'wrap'
           }}>
             <Link
-              to={routes.home}
+              to={routes.dashboard}
               style={{
                 padding: '12px 24px',
                 backgroundColor: 'white',
@@ -268,32 +177,8 @@ const ProfilePage: React.FC = () => {
                 e.currentTarget.style.backgroundColor = 'white';
               }}
             >
-              Back to Home
+              Back to Dashboard
             </Link>
-            <button
-              onClick={handleLogout}
-              style={{
-                padding: '12px 24px',
-                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
-            >
-              Sign Out
-            </button>
           </div>
         </div>
 
@@ -391,9 +276,10 @@ const ProfilePage: React.FC = () => {
                     fontSize: '18px',
                     fontWeight: '600',
                     color: '#111827',
-                    margin: 0
+                    margin: 0,
+                    fontFamily: 'monospace'
                   }}>
-                    {user.cpr}
+                    {userStorage.formatCPR(user.cpr)}
                   </p>
                 </div>
               )}
@@ -760,7 +646,7 @@ const ProfilePage: React.FC = () => {
                 Want to update your availability?
               </p>
               <Link
-                to="/manage-availability"
+                to={routes.manageAvailability}
                 style={{
                   padding: '8px 16px',
                   backgroundColor: '#0d9488',
