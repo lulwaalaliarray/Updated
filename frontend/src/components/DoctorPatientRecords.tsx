@@ -35,23 +35,20 @@ const DoctorPatientRecords: React.FC<DoctorPatientRecordsProps> = ({ doctorId })
     setLoading(true);
     
     try {
-      // Initialize demo data
+      // Initialize data
       const { appointmentStorage } = require('../utils/appointmentStorage');
-      const { initializeDemoUsers } = require('../utils/userStorage');
-      
-      initializeDemoUsers();
       let allAppointments = appointmentStorage.getAllAppointments();
 
-      // Force refresh demo data if no appointments exist
+      // Force refresh data if no appointments exist
       if (allAppointments.length === 0) {
         appointmentStorage.refreshAppointments();
         allAppointments = appointmentStorage.getAllAppointments();
       }
       
-      // Map the logged-in doctor to the correct demo doctor ID
+      // Map the logged-in doctor to the correct doctor ID
       let actualDoctorId = doctorId;
       
-      // Check if this is a demo doctor email and map to the correct ID
+      // Check if this is a doctor email and map to the correct ID
       const doctorEmailToIdMap: { [key: string]: string } = {
         'doctor@patientcare.bh': 'doctor-001',
         'fatima.doctor@patientcare.bh': 'doctor-002', 
@@ -62,38 +59,29 @@ const DoctorPatientRecords: React.FC<DoctorPatientRecordsProps> = ({ doctorId })
       
       if (doctorEmailToIdMap[doctorId]) {
         actualDoctorId = doctorEmailToIdMap[doctorId];
+        console.log('Mapped doctor email to ID:', doctorId, '->', actualDoctorId);
       }
       
-      // Get all appointments for the current doctor
+      // Get all appointments for the current doctor (for visit statistics)
       const doctorAppointments = allAppointments.filter((appointment: any) => {
         return appointment.doctorId === actualDoctorId || 
                appointment.doctorId === doctorId ||
                appointment.doctorEmail === doctorId;
       });
-      
-      if (doctorAppointments.length === 0) {
-        setPatients([]);
-        setLoading(false);
-        return;
-      }
-      
-      // Extract unique patient IDs from those appointments
-      const patientIds = [...new Set(doctorAppointments.map((a: any) => a.patientId || a.patientEmail))];
 
-      // Get all registered users (patients)
+      // Get all registered users (patients) - show ALL patients, not just those with appointments
       const allUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
       const allPatients = allUsers.filter((user: any) => user.userType === 'patient');
 
-      // Build patient records for patients who have appointments with this doctor
-      const patientRecords: PatientRecord[] = patientIds.map((patientId: any) => {
-        // Find the patient's user data
-        const patientUser = allPatients.find((user: any) => 
-          user.id === patientId || user.email === patientId
-        );
+      console.log('All patients found:', allPatients.length); // Debug log
+
+      // Build patient records for ALL registered patients
+      const patientRecords: PatientRecord[] = allPatients.map((patientUser: any) => {
+        const patientId = patientUser.id || patientUser.email;
         
         // Get all appointments for this patient with this doctor
         const patientAppointments = doctorAppointments.filter((apt: any) => 
-          (apt.patientId === patientId || apt.patientEmail === patientId)
+          (apt.patientId === patientId || apt.patientEmail === patientUser.email)
         );
         
         // Calculate visit statistics
@@ -106,7 +94,7 @@ const DoctorPatientRecords: React.FC<DoctorPatientRecordsProps> = ({ doctorId })
         // Get or create patient record from storage
         let existingRecord = patientRecordsStorage.getPatientRecordByPatientAndDoctor(patientId, actualDoctorId);
         
-        if (!existingRecord && patientUser) {
+        if (!existingRecord) {
           // Create new record from user data
           existingRecord = patientRecordsStorage.createPatientRecordFromUserData({
             patientId: patientUser.id || patientUser.email,
@@ -114,15 +102,6 @@ const DoctorPatientRecords: React.FC<DoctorPatientRecordsProps> = ({ doctorId })
             patientEmail: patientUser.email,
             cprNumber: patientUser.cpr || '',
             phoneNumber: patientUser.phone || '',
-            doctorId: actualDoctorId
-          });
-        } else if (!existingRecord) {
-          // Create basic record from appointment data
-          const firstAppointment = patientAppointments[0];
-          existingRecord = patientRecordsStorage.createPatientRecordFromAppointment({
-            patientId: patientId,
-            patientName: firstAppointment.patientName,
-            patientEmail: firstAppointment.patientEmail,
             doctorId: actualDoctorId
           });
         }
@@ -145,11 +124,21 @@ const DoctorPatientRecords: React.FC<DoctorPatientRecordsProps> = ({ doctorId })
         return null;
       }).filter(Boolean) as PatientRecord[];
       
-      // Sort by most recent activity
+      console.log('Patient records created:', patientRecords.length); // Debug log
+      
+      // Sort by most recent activity, then by name
       patientRecords.sort((a, b) => {
+        // First sort by whether they have visits (patients with visits first)
+        if (a.numberOfVisits > 0 && b.numberOfVisits === 0) return -1;
+        if (a.numberOfVisits === 0 && b.numberOfVisits > 0) return 1;
+        
+        // Then by most recent activity
         const aDate = new Date(a.lastVisit || a.dateCreated).getTime();
         const bDate = new Date(b.lastVisit || b.dateCreated).getTime();
-        return bDate - aDate;
+        if (aDate !== bDate) return bDate - aDate;
+        
+        // Finally by name
+        return a.fullName.localeCompare(b.fullName);
       });
       
       // Handle single patient view
@@ -469,7 +458,7 @@ const DoctorPatientRecords: React.FC<DoctorPatientRecordsProps> = ({ doctorId })
                       Last Visit
                     </th>
                     <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600', color: '#374151', borderBottom: '1px solid #e5e7eb' }}>
-                      Actions
+                      Status
                     </th>
                   </tr>
                 </thead>
@@ -497,10 +486,34 @@ const DoctorPatientRecords: React.FC<DoctorPatientRecordsProps> = ({ doctorId })
                           }}>
                             {patient.fullName.charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                            <p style={{ fontWeight: '600', color: '#111827', margin: 0 }}>
-                              {patient.fullName}
-                            </p>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <p style={{ fontWeight: '600', color: '#111827', margin: 0 }}>
+                                {patient.fullName}
+                              </p>
+                              <button
+                                onClick={() => setSelectedPatient(patient)}
+                                style={{
+                                  padding: '4px 8px',
+                                  backgroundColor: '#f59e0b',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  fontSize: '10px',
+                                  fontWeight: '500',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#d97706';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = '#f59e0b';
+                                }}
+                              >
+                                ✏️ Edit
+                              </button>
+                            </div>
                             <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
                               {patient.contactInfo.email}
                             </p>
@@ -533,6 +546,40 @@ const DoctorPatientRecords: React.FC<DoctorPatientRecordsProps> = ({ doctorId })
                         </span>
                       </td>
                       <td style={{ padding: '16px', color: '#374151', fontSize: '14px' }}>
+                        <div>
+                          <div style={{ 
+                            color: patient.physicalInfo?.height?.value > 0 ? '#374151' : '#ef4444' 
+                          }}>
+                            {patient.physicalInfo?.height?.value > 0 
+                              ? `${patient.physicalInfo.height.value}${patient.physicalInfo.height.unit === 'cm' ? 'cm' : 'ft'}`
+                              : 'Height not set'
+                            }
+                          </div>
+                          <div style={{ 
+                            color: patient.physicalInfo?.weight?.value > 0 ? '#374151' : '#ef4444' 
+                          }}>
+                            {patient.physicalInfo?.weight?.value > 0 
+                              ? `${patient.physicalInfo.weight.value}${patient.physicalInfo.weight.unit}`
+                              : 'Weight not set'
+                            }
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px', color: '#374151', fontSize: '14px' }}>
+                        <div>
+                          <div style={{ 
+                            color: patient.contactInfo?.phoneNumber ? '#374151' : '#ef4444' 
+                          }}>
+                            {patient.contactInfo?.phoneNumber || 'Phone not set'}
+                          </div>
+                          <div style={{ 
+                            color: patient.contactInfo?.address?.city ? '#6b7280' : '#ef4444' 
+                          }}>
+                            {patient.contactInfo?.address?.city || 'Address not set'}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px', color: '#374151', fontSize: '14px' }}>
                         {patient.lastVisit 
                           ? new Date(patient.lastVisit).toLocaleDateString('en-US', {
                               month: 'short',
@@ -543,21 +590,16 @@ const DoctorPatientRecords: React.FC<DoctorPatientRecordsProps> = ({ doctorId })
                         }
                       </td>
                       <td style={{ padding: '16px', textAlign: 'center' }}>
-                        <button
-                          onClick={() => setSelectedPatient(patient)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#0d9488',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '500',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          View Details
-                        </button>
+                        <span style={{
+                          padding: '4px 8px',
+                          backgroundColor: patient.numberOfVisits > 0 ? '#dcfce7' : '#fef3c7',
+                          color: patient.numberOfVisits > 0 ? '#166534' : '#92400e',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: '500'
+                        }}>
+                          {patient.numberOfVisits > 0 ? 'Active Patient' : 'New Patient'}
+                        </span>
                       </td>
                     </tr>
                   ))}

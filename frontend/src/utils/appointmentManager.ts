@@ -150,32 +150,7 @@ export const appointmentManager = {
     }
   },
 
-  // Auto-approve appointments for demo purposes (can be removed in production)
-  autoApproveOldPendingAppointments: (): void => {
-    try {
-      const appointments = appointmentStorage.getAllAppointments();
-      const now = new Date();
-      
-      appointments.forEach(appointment => {
-        if (appointment.status === 'pending') {
-          const appointmentDate = new Date(appointment.createdAt);
-          const hoursSinceCreated = (now.getTime() - appointmentDate.getTime()) / (1000 * 60 * 60);
-          
-          // Auto-approve appointments created more than 1 hour ago for demo
-          if (hoursSinceCreated > 1) {
-            appointmentManager.updateAppointmentStatus(
-              appointment.id,
-              'confirmed',
-              'system',
-              'Auto-approved for demonstration'
-            );
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error auto-approving appointments:', error);
-    }
-  },
+
 
   // Get appointment statistics for dashboard
   getAppointmentStats: (userId: string, userType: 'patient' | 'doctor' | 'admin') => {
@@ -215,15 +190,3 @@ export const appointmentManager = {
   }
 };
 
-// Initialize auto-approval for demo (run once when module loads)
-if (typeof window !== 'undefined') {
-  // Run auto-approval on page load
-  setTimeout(() => {
-    appointmentManager.autoApproveOldPendingAppointments();
-  }, 1000);
-  
-  // Run auto-approval every 5 minutes for demo
-  setInterval(() => {
-    appointmentManager.autoApproveOldPendingAppointments();
-  }, 5 * 60 * 1000);
-}

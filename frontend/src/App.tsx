@@ -31,6 +31,7 @@ import WritePrescription from './components/WritePrescription';
 import DoctorProfilePage from './pages/DoctorProfilePage';
 import MyAppointmentsPage from './pages/MyAppointmentsPage';
 
+
 import ViewPrescriptions from './components/ViewPrescriptions';
 import PersonalMedicalRecords from './components/PersonalMedicalRecords';
 import PastPatients from './components/PastPatients';
@@ -38,20 +39,14 @@ import LeaveReview from './components/LeaveReview';
 import ReviewDisplay from './components/ReviewDisplay';
 import PatientAppointments from './components/PatientAppointments';
 import DoctorAppointmentManager from './components/DoctorAppointmentManager';
-import DemoModal from './components/DemoModal';
-import InteractiveVideoDemo from './components/InteractiveVideoDemo';
-import ScreenRecordingDemo from './components/ScreenRecordingDemo';
-import DemoVideo from './components/DemoVideo';
 import Project from './components/Project';
 import UserManagement from './components/UserManagement';
 import NewsletterManagement from './components/NewsletterManagement';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import RegisterPage from './pages/RegisterPage';
-import ProfessionalWebsiteDemo from './components/ProfessionalWebsiteDemo';
-import WebsiteDemoPage from './pages/WebsiteDemoPage';
 
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import DoctorPatientRecords from './components/DoctorPatientRecords';
+
 
 
 const ChatPage = () => <div style={{ padding: '40px', textAlign: 'center' }}><h2>Chat with Doctor</h2><p>Secure messaging with healthcare providers.</p></div>;
@@ -208,30 +203,7 @@ function App(): JSX.Element {
               <PastPatients />
             </ProtectedRoute>
           } />
-          <Route path="/patient-records" element={
-            <ProtectedRoute message="Please log in as a doctor to view patient records">
-              {user?.userType === 'doctor' ? (
-                <DoctorPatientRecords doctorId={(user as any).id || user.email || ''} />
-              ) : (
-                <div style={{ padding: '40px', textAlign: 'center' }}>
-                  <h2>Access Denied</h2>
-                  <p>Only doctors can access patient records.</p>
-                </div>
-              )}
-            </ProtectedRoute>
-          } />
-          <Route path="/patient-records/:patientId" element={
-            <ProtectedRoute message="Please log in as a doctor to view patient records">
-              {user?.userType === 'doctor' ? (
-                <DoctorPatientRecords doctorId={(user as any).id || user.email || ''} />
-              ) : (
-                <div style={{ padding: '40px', textAlign: 'center' }}>
-                  <h2>Access Denied</h2>
-                  <p>Only doctors can access patient records.</p>
-                </div>
-              )}
-            </ProtectedRoute>
-          } />
+
           <Route path="/leave-review/:doctorId" element={
             <ProtectedRoute message="Please log in to leave a review">
               <LeaveReview />
@@ -243,10 +215,6 @@ function App(): JSX.Element {
               <PatientAppointments />
             </ProtectedRoute>
           } />
-          <Route path="/demo" element={<DemoModal />} />
-          <Route path="/video-demo" element={<InteractiveVideoDemo />} />
-          <Route path="/demo-video" element={<DemoVideo />} />
-          <Route path="/walkthrough" element={<ScreenRecordingDemo />} />
           <Route path="/project" element={<Project />} />
           <Route path="/user-management" element={
             <ProtectedRoute message="Please log in as an admin to manage users">
@@ -264,12 +232,6 @@ function App(): JSX.Element {
             </ProtectedRoute>
           } />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/website-demo" element={<WebsiteDemoPage />} />
-          <Route path="/website-demo-fullscreen" element={
-            <div style={{ width: '100vw', height: '100vh' }}>
-              <ProfessionalWebsiteDemo />
-            </div>
-          } />
 
         </Routes>
       </Router>

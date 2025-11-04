@@ -275,7 +275,7 @@ export const DoctorVerification: React.FC = () => {
                   fullWidth
                   multiline
                   rows={4}
-                  label={verificationAction === 'approve' ? 'Approval Notes (Optional)' : 'Rejection Reason'}
+                  label={verificationAction === 'approve' ? 'Approval Notes' : 'Rejection Reason'}
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
                   placeholder={

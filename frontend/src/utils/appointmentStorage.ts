@@ -18,94 +18,7 @@ export interface Appointment {
 
 const APPOINTMENTS_STORAGE_KEY = 'patientcare_appointments';
 
-// Default appointments for demo
-const defaultAppointments: Appointment[] = [
-  {
-    id: '1',
-    patientId: 'patient-001',
-    patientName: 'Sarah Al-Khalifa',
-    patientEmail: 'patient@patientcare.bh',
-    doctorId: 'doctor-001',
-    doctorName: 'Dr. Ahmed Al-Mansouri',
-    date: new Date().toISOString().split('T')[0], // Today
-    time: '09:00',
-    duration: 30,
-    type: 'consultation',
-    status: 'pending',
-    notes: 'Patient reports sharp chest pain lasting 2 days, especially when breathing deeply. No fever. Pain rated 6/10. Symptoms started after physical exercise.',
-    fee: 30, // Dr. Ahmed Al-Mansouri's fee
-    createdAt: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-    updatedAt: new Date(Date.now() - 86400000).toISOString()
-  },
-  {
-    id: '2',
-    patientId: 'patient-001',
-    patientName: 'Sarah Al-Khalifa',
-    patientEmail: 'patient@patientcare.bh',
-    doctorId: 'doctor-002',
-    doctorName: 'Dr. Fatima Al-Khalifa',
-    date: new Date(Date.now() - 86400000).toISOString().split('T')[0], // Yesterday
-    time: '10:30',
-    duration: 20,
-    type: 'follow-up',
-    status: 'completed',
-    notes: 'Follow-up visit: Blood pressure improved (130/85). Patient reports occasional dizziness in mornings. No side effects from Lisinopril. Compliance good.',
-    fee: 25, // Dr. Fatima Al-Khalifa's fee
-    createdAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-    updatedAt: new Date(Date.now() - 86400000).toISOString()
-  },
-  {
-    id: '3',
-    patientId: 'patient-001',
-    patientName: 'Sarah Al-Khalifa',
-    patientEmail: 'patient@patientcare.bh',
-    doctorId: 'doctor-003',
-    doctorName: 'Dr. Mohammed Al-Dosari',
-    date: new Date(Date.now() - 172800000).toISOString().split('T')[0], // 2 days ago
-    time: '14:00',
-    duration: 45,
-    type: 'check-up',
-    status: 'completed',
-    notes: 'Annual check-up: Patient reports fatigue and mild headaches for past month. Sleep quality poor (4-5 hours/night). No significant weight changes. Vitals stable.',
-    fee: 35, // Dr. Mohammed Al-Dosari's fee
-    createdAt: new Date(Date.now() - 43200000).toISOString(), // 12 hours ago
-    updatedAt: new Date(Date.now() - 43200000).toISOString()
-  },
-  {
-    id: '4',
-    patientId: 'patient-002',
-    patientName: 'Ahmed Hassan',
-    patientEmail: 'ahmed.hassan@email.com',
-    doctorId: 'doctor-004',
-    doctorName: 'Dr. Aisha Al-Mannai',
-    date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
-    time: '11:00',
-    duration: 30,
-    type: 'consultation',
-    status: 'confirmed',
-    notes: 'New patient with Type 2 diabetes. Reports frequent urination, excessive thirst, and blurred vision for 3 weeks. Blood glucose levels consistently above 200 mg/dL.',
-    fee: 28, // Dr. Aisha Al-Mannai's fee
-    createdAt: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-    updatedAt: new Date(Date.now() - 86400000).toISOString()
-  },
-  {
-    id: '5',
-    patientId: 'patient-001',
-    patientName: 'Sarah Al-Khalifa',
-    patientEmail: 'patient@patientcare.bh',
-    doctorId: 'doctor-005',
-    doctorName: 'Dr. Khalid Al-Thani',
-    date: new Date(Date.now() - 259200000).toISOString().split('T')[0], // 3 days ago
-    time: '16:00',
-    duration: 30,
-    type: 'consultation',
-    status: 'completed',
-    notes: 'Cardiology consultation: Patient experiencing palpitations and shortness of breath during mild activity. Episodes last 5-10 minutes. No chest pain. Family history of heart disease.',
-    fee: 40, // Dr. Khalid Al-Thani's fee
-    createdAt: new Date(Date.now() - 259200000).toISOString(),
-    updatedAt: new Date(Date.now() - 259200000).toISOString()
-  }
-];
+
 
 export const appointmentStorage = {
   // Get all appointments
@@ -115,9 +28,8 @@ export const appointmentStorage = {
       if (stored) {
         return JSON.parse(stored);
       }
-      // Initialize with default appointments if none exist
-      localStorage.setItem(APPOINTMENTS_STORAGE_KEY, JSON.stringify(defaultAppointments));
-      return defaultAppointments;
+      // Return empty array if no appointments exist
+      return [];
     } catch (error) {
       console.error('Error loading appointments:', error);
       return [];

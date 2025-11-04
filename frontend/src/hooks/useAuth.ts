@@ -55,7 +55,7 @@ export const useAuth = () => {
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       // Mock login - replace with actual API call
-      if (email === 'user@example.com' && password === 'password') {
+      if (email === 'admin@example.com' && password === 'admin123') {
         const user: User = {
           id: '1',
           name: 'Sarah Al-Khalifa',

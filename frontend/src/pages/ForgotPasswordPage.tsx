@@ -38,7 +38,7 @@ const ForgotPasswordPage: React.FC = () => {
 
       if (userExists) {
         // In a real app, this would send an actual email
-        // For demo purposes, we'll show the reset instructions
+        // Show the reset instructions
         setIsEmailSent(true);
         showToast('Password reset instructions sent to your email', 'success');
       } else {

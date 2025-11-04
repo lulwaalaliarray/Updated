@@ -8,7 +8,7 @@ import { useToast } from './Toast';
 import { appointmentStorage, Appointment } from '../utils/appointmentStorage';
 import { appointmentManager } from '../utils/appointmentManager';
 
-interface DoctorDashboardProps {
+interface AdminDashboardProps {
   user: {
     name: string;
     email?: string;
@@ -19,14 +19,13 @@ interface DoctorDashboardProps {
   };
 }
 
-const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [pendingAppointments, setPendingAppointments] = useState<Appointment[]>([]);
-  const [pastPatients, setPastPatients] = useState<Appointment[]>([]);
   const [allPatients, setAllPatients] = useState<any[]>([]);
 
   const currentHour = new Date().getHours();
@@ -82,7 +81,6 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
 
     // Get past patients (completed appointments only)
     const pastAppointments = appointmentStorage.getPastAppointments(doctorId);
-    setPastPatients(pastAppointments);
     setAllPatients(pastAppointments);
   };
 
@@ -96,7 +94,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
         appointmentId,
         'confirmed',
         userId,
-        'Appointment approved by doctor'
+        'Appointment approved by admin'
       );
       
       if (success) {
@@ -121,7 +119,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
         appointmentId,
         'rejected',
         userId,
-        'Appointment declined by doctor'
+        'Appointment declined by admin'
       );
       
       if (success) {
@@ -161,9 +159,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
            currentDate.getFullYear() === today.getFullYear();
   };
 
-  const handleQuickAction = (action: string) => {
-    showToast(`${action} feature coming soon!`, 'info');
-  };
+
 
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(':');
@@ -176,7 +172,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
   const quickActions = [
     {
       title: 'Manage Availability',
-      description: 'Update your schedule and availability',
+      description: 'Update schedule and availability',
       icon: (
         <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
           <path d="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z"/>
@@ -184,16 +180,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
       ),
       action: () => navigate('/manage-availability')
     },
-    {
-      title: 'Patient Records',
-      description: 'Access patient medical histories',
-      icon: (
-        <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-        </svg>
-      ),
-      action: () => navigate('/patient-records')
-    },
+
     {
       title: 'Write Prescription',
       description: 'Create new prescriptions',
@@ -281,7 +268,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
                 color: '#111827',
                 margin: '0 0 8px 0'
               }}>
-                {greeting}, Dr. {user.name}
+                {greeting}, {user.name}
               </h1>
               <p style={{
                 fontSize: '16px',
@@ -584,37 +571,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
                     color: '#6b7280'
                   }}>
                     <p style={{ marginBottom: '16px' }}>No patients have booked appointments yet</p>
-                    <button
-                      onClick={() => navigate('/patient-records')}
-                      style={{
-                        padding: '12px 24px',
-                        backgroundColor: '#0d9488',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        margin: '0 auto'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#0f766e';
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#0d9488';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/>
-                      </svg>
-                      Manage Patient Records
-                    </button>
+
                   </div>
                 ) : (
                   allPatients.slice(0, 4).map((appointment) => (
@@ -816,7 +773,7 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
               display: 'grid',
               gridTemplateColumns: 'repeat(7, 1fr)',
               gap: '4px',
-              marginBottom: '12px'
+              marginBottom: '16px'
             }}>
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
                 <div key={day} style={{
@@ -949,4 +906,4 @@ const DoctorDashboard: React.FC<DoctorDashboardProps> = ({ user }) => {
   );
 };
 
-export default DoctorDashboard;
+export default AdminDashboard;

@@ -3,7 +3,7 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../hooks/redux';
 import PatientDashboard from '../components/Dashboard/PatientDashboard';
-import DoctorDashboard from '../components/Dashboard/DoctorDashboard';
+import AdminDashboard from '../components/AdminDashboard';
 import AdminDashboardPage from './AdminDashboardPage';
 
 function DashboardPage(): JSX.Element {
@@ -36,7 +36,7 @@ function DashboardPage(): JSX.Element {
     case 'patient':
       return <PatientDashboard />;
     case 'doctor':
-      return <DoctorDashboard />;
+      return <AdminDashboard />;
     case 'admin':
       return <AdminDashboardPage />;
     default:

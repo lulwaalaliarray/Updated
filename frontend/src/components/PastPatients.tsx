@@ -5,6 +5,7 @@ import Footer from './Footer';
 import { useToast } from './Toast';
 import { userStorage, User } from '../utils/userStorage';
 import { appointmentStorage } from '../utils/appointmentStorage';
+import { prescriptionStorage, Prescription } from '../utils/prescriptionStorage';
 import { inputValidation } from '../utils/inputValidation';
 
 const PastPatients: React.FC = () => {
@@ -14,6 +15,10 @@ const PastPatients: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<User | null>(null);
+  const [showPatientDetails, setShowPatientDetails] = useState(false);
+  const [patientVisits, setPatientVisits] = useState<any[]>([]);
+  const [patientPrescriptions, setPatientPrescriptions] = useState<Prescription[]>([]);
 
   useEffect(() => {
     // Get current user information
@@ -119,7 +124,60 @@ const PastPatients: React.FC = () => {
   );
 
   const handleViewPatientDetails = (patientId: string) => {
-    navigate(`/patient-records/${patientId}`);
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient || !currentUser) return;
+
+    setSelectedPatient(patient);
+    
+    // Get patient's appointments
+    const appointments = appointmentStorage.getAllAppointments();
+    const doctorId = currentUser.id || currentUser.email;
+    
+    let patientAppointments;
+    if (currentUser.userType === 'admin') {
+      // Admin sees all appointments for this patient
+      patientAppointments = appointments.filter(apt => 
+        apt.patientId === patientId || apt.patientEmail === patient.email
+      );
+    } else {
+      // Doctor sees only their appointments with this patient
+      patientAppointments = appointments.filter(apt => 
+        (apt.patientId === patientId || apt.patientEmail === patient.email) &&
+        apt.doctorId === doctorId
+      );
+    }
+    
+    // Sort appointments by date (newest first)
+    const sortedAppointments = patientAppointments.sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    
+    setPatientVisits(sortedAppointments);
+    
+    // Get patient's prescriptions
+    const allPrescriptions = prescriptionStorage.getAllPrescriptions();
+    let patientPrescriptions;
+    
+    if (currentUser.userType === 'admin') {
+      // Admin sees all prescriptions for this patient
+      patientPrescriptions = allPrescriptions.filter(rx => 
+        rx.patientId === patientId || rx.patientEmail === patient.email
+      );
+    } else {
+      // Doctor sees only their prescriptions for this patient
+      patientPrescriptions = allPrescriptions.filter(rx => 
+        (rx.patientId === patientId || rx.patientEmail === patient.email) &&
+        rx.doctorId === doctorId
+      );
+    }
+    
+    // Sort prescriptions by date (newest first)
+    const sortedPrescriptions = patientPrescriptions.sort((a, b) => 
+      new Date(b.dateIssued).getTime() - new Date(a.dateIssued).getTime()
+    );
+    
+    setPatientPrescriptions(sortedPrescriptions);
+    setShowPatientDetails(true);
   };
 
   if (loading) {
@@ -430,6 +488,413 @@ const PastPatients: React.FC = () => {
       </div>
 
       <Footer />
+
+      {/* Patient Details Modal */}
+      {showPatientDetails && selectedPatient && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '900px',
+            maxHeight: '90vh',
+            overflow: 'hidden',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '24px',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  backgroundColor: '#ecfdf5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <span style={{
+                    color: '#0d9488',
+                    fontWeight: '600',
+                    fontSize: '20px'
+                  }}>
+                    {selectedPatient.name.split(' ').map(n => n[0]).join('')}
+                  </span>
+                </div>
+                <div>
+                  <h2 style={{
+                    fontSize: '24px',
+                    fontWeight: '700',
+                    color: '#111827',
+                    margin: '0 0 4px 0'
+                  }}>
+                    {selectedPatient.name}
+                  </h2>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    margin: '0 0 2px 0'
+                  }}>
+                    {selectedPatient.email}
+                  </p>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#9ca3af',
+                    margin: 0
+                  }}>
+                    CPR: {selectedPatient.cpr}
+                  </p>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => setShowPatientDetails(false)}
+                style={{
+                  padding: '8px',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  color: '#6b7280',
+                  fontSize: '20px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div style={{
+              padding: '24px',
+              maxHeight: 'calc(90vh - 120px)',
+              overflowY: 'auto'
+            }}>
+              {/* Summary Stats */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '16px',
+                marginBottom: '32px'
+              }}>
+                <div style={{
+                  backgroundColor: '#f0f9ff',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    fontSize: '24px',
+                    fontWeight: '700',
+                    color: '#0369a1'
+                  }}>
+                    {patientVisits.length}
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#0369a1',
+                    fontWeight: '500'
+                  }}>
+                    Total Visits
+                  </div>
+                </div>
+                
+                <div style={{
+                  backgroundColor: '#f0fdf4',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    fontSize: '24px',
+                    fontWeight: '700',
+                    color: '#059669'
+                  }}>
+                    {patientPrescriptions.length}
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#059669',
+                    fontWeight: '500'
+                  }}>
+                    Prescriptions
+                  </div>
+                </div>
+                
+                <div style={{
+                  backgroundColor: '#fef3c7',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    fontSize: '24px',
+                    fontWeight: '700',
+                    color: '#d97706'
+                  }}>
+                    {patientVisits.filter(v => v.status === 'completed').length}
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#d97706',
+                    fontWeight: '500'
+                  }}>
+                    Completed
+                  </div>
+                </div>
+              </div>
+
+              {/* Visit History */}
+              <div style={{ marginBottom: '32px' }}>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  📅 Visit History
+                </h3>
+                
+                {patientVisits.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '40px',
+                    color: '#6b7280',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '8px'
+                  }}>
+                    <p>No visits recorded</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {patientVisits.map((visit) => (
+                      <div
+                        key={visit.id}
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          padding: '16px',
+                          backgroundColor: '#f8fafc'
+                        }}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: '8px'
+                        }}>
+                          <div>
+                            <div style={{
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              color: '#111827'
+                            }}>
+                              {new Date(visit.date).toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </div>
+                            <div style={{
+                              fontSize: '12px',
+                              color: '#6b7280'
+                            }}>
+                              {visit.time} • {visit.doctorName}
+                            </div>
+                          </div>
+                          
+                          <span style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: '500',
+                            backgroundColor: visit.status === 'completed' ? '#dcfce7' : 
+                                           visit.status === 'confirmed' ? '#dbeafe' : '#fef3c7',
+                            color: visit.status === 'completed' ? '#059669' : 
+                                   visit.status === 'confirmed' ? '#2563eb' : '#d97706',
+                            textTransform: 'capitalize'
+                          }}>
+                            {visit.status}
+                          </span>
+                        </div>
+                        
+                        {visit.reason && (
+                          <div style={{
+                            fontSize: '12px',
+                            color: '#374151',
+                            backgroundColor: 'white',
+                            padding: '8px',
+                            borderRadius: '4px',
+                            marginTop: '8px'
+                          }}>
+                            <strong>Reason:</strong> {visit.reason}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Prescription History */}
+              <div>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  💊 Prescription History
+                </h3>
+                
+                {patientPrescriptions.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '40px',
+                    color: '#6b7280',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '8px'
+                  }}>
+                    <p>No prescriptions issued</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {patientPrescriptions.map((prescription) => (
+                      <div
+                        key={prescription.id}
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '8px',
+                          padding: '16px',
+                          backgroundColor: '#f8fafc'
+                        }}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: '12px'
+                        }}>
+                          <div>
+                            <div style={{
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              color: '#111827'
+                            }}>
+                              {new Date(prescription.dateIssued).toLocaleDateString()}
+                            </div>
+                            <div style={{
+                              fontSize: '12px',
+                              color: '#6b7280'
+                            }}>
+                              Dr. {prescription.doctorName}
+                            </div>
+                          </div>
+                          
+                          <span style={{
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: '500',
+                            backgroundColor: prescription.status === 'active' ? '#dcfce7' : 
+                                           prescription.status === 'completed' ? '#dbeafe' : '#fef3c7',
+                            color: prescription.status === 'active' ? '#059669' : 
+                                   prescription.status === 'completed' ? '#2563eb' : '#d97706',
+                            textTransform: 'capitalize'
+                          }}>
+                            {prescription.status}
+                          </span>
+                        </div>
+                        
+                        <div style={{
+                          backgroundColor: 'white',
+                          padding: '12px',
+                          borderRadius: '6px',
+                          marginBottom: '8px'
+                        }}>
+                          <div style={{
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            color: '#111827',
+                            marginBottom: '4px'
+                          }}>
+                            Diagnosis: {prescription.diagnosis}
+                          </div>
+                          
+                          <div style={{ marginTop: '8px' }}>
+                            <div style={{
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              color: '#374151',
+                              marginBottom: '4px'
+                            }}>
+                              Medications:
+                            </div>
+                            {prescription.medications.map((med, index) => (
+                              <div
+                                key={index}
+                                style={{
+                                  fontSize: '11px',
+                                  color: '#6b7280',
+                                  marginLeft: '8px',
+                                  marginBottom: '2px'
+                                }}
+                              >
+                                • {med.name} {med.dosage} - {med.frequency} for {med.duration}
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {prescription.notes && (
+                            <div style={{
+                              marginTop: '8px',
+                              fontSize: '11px',
+                              color: '#374151',
+                              fontStyle: 'italic'
+                            }}>
+                              Notes: {prescription.notes}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       <style>
         {`

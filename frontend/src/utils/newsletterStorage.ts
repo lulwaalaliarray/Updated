@@ -82,7 +82,7 @@ export const newsletterStorage = {
     }
   },
 
-  // Clear all subscriptions (for testing/demo purposes)
+  // Clear all subscriptions
   clearAllSubscriptions: (): void => {
     localStorage.removeItem('newsletterSubscriptions');
   },

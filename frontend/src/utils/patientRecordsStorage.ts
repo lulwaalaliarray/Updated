@@ -540,7 +540,7 @@ class PatientRecordsStorage {
     return 'patient_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
   }
 
-  // Initialize with sample data for demonstration (disabled in favor of automatic user data population)
+  // Initialize with sample data (disabled in favor of automatic user data population)
   initializeSampleData(doctorId: string): void {
     // Sample data initialization is now disabled in favor of automatic patient record creation
     // from real user registration data and appointments. The enhanced system automatically

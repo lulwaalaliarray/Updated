@@ -38,7 +38,7 @@ const NewsletterManagement: React.FC = () => {
       <div style={{ marginBottom: '24px' }}>
         <h2 style={{ color: '#111827', marginBottom: '8px' }}>Newsletter Management</h2>
         <p style={{ color: '#6b7280', fontSize: '14px' }}>
-          Demo utility to view and manage newsletter subscriptions
+          Utility to view and manage newsletter subscriptions
         </p>
       </div>
 

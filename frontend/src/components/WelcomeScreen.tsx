@@ -6,7 +6,7 @@ import FeaturesSection from './FeaturesSection';
 import StatsSection from './StatsSection';
 import Footer from './Footer';
 import BackToTopButton from './BackToTopButton';
-import DoctorDashboard from './DoctorDashboard';
+import AdminDashboard from './AdminDashboard';
 import { isLoggedIn, routes } from '../utils/navigation';
 import { appointmentStorage } from '../utils/appointmentStorage';
 import { prescriptionStorage } from '../utils/prescriptionStorage';
@@ -509,9 +509,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
     );
   }
 
-  // If user is a doctor, show doctor dashboard
+  // If user is a doctor, show admin dashboard
   if (user && user.userType === 'doctor') {
-    return <DoctorDashboard user={user} />;
+    return <AdminDashboard user={user} />;
   }
 
   // If user is a patient, show patient dashboard-like home page

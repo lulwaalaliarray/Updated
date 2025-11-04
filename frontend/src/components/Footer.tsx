@@ -63,7 +63,7 @@ const Footer: React.FC = () => {
     product: [
       { name: 'Features', href: routes.features },
       { name: 'Find Doctors', href: routes.findDoctors },
-      { name: 'Demo', href: '/walkthrough' },
+
       { name: 'Security', href: routes.security }
     ],
     company: [

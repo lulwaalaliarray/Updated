@@ -6,9 +6,10 @@ import { userStorage, User } from '../utils/userStorage';
 import Header from './Header';
 import Footer from './Footer';
 import DoctorCard from './DoctorCard';
-import BookAppointmentDemo from './BookAppointmentDemo';
+
 import { reviewStorage } from '../utils/reviewStorage';
 import { inputValidation } from '../utils/inputValidation';
+import AppointmentBooking from './Booking/AppointmentBooking';
 
 // Create a unified doctor type for both registered and mock doctors
 type UnifiedDoctor = User & {
@@ -411,13 +412,12 @@ const FindDoctors: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
-  const [sortBy, setSortBy] = useState('rating');
+  const [sortBy, setSortBy] = useState('');
   const [userLoggedIn, setUserLoggedIn] = useState(false);
   const [doctors, setDoctors] = useState<User[]>([]);
-  const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState<{ id: string; name: string } | null>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<UnifiedDoctor | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [showDoctorDetails, setShowDoctorDetails] = useState(false);
   const [selectedDoctorDetails, setSelectedDoctorDetails] = useState<UnifiedDoctor | null>(null);
@@ -448,72 +448,7 @@ const FindDoctors: React.FC = () => {
     };
   }, []);
 
-  // Calculate distance between two coordinates using Haversine formula
-  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c; // Distance in kilometers
-  };
 
-  // Get user's current location
-  const getUserLocation = () => {
-    if (!navigator.geolocation) {
-      showToast('Geolocation is not supported by this browser', 'error');
-      return;
-    }
-
-    // Check if we're on HTTPS or localhost (required for geolocation)
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-      showToast('Location services require HTTPS. Please use a secure connection.', 'error');
-      return;
-    }
-
-    // Show loading state
-    showToast('Getting your location...', 'info');
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        console.log('Location obtained:', position.coords);
-        setUserLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        });
-        setLocationPermission('granted');
-        showToast('Location detected! Showing nearby doctors', 'success');
-        // Automatically sort by distance when location is obtained
-        setSortBy('distance');
-      },
-      (error) => {
-        setLocationPermission('denied');
-        console.error('Geolocation error:', error);
-        switch(error.code) {
-          case error.PERMISSION_DENIED:
-            showToast('Location access denied. Please enable location services in your browser settings and refresh the page', 'error');
-            break;
-          case error.POSITION_UNAVAILABLE:
-            showToast('Location information unavailable. Please check your GPS settings and try again', 'error');
-            break;
-          case error.TIMEOUT:
-            showToast('Location request timed out. Please try again', 'error');
-            break;
-          default:
-            showToast('An unknown error occurred while retrieving location', 'error');
-            break;
-        }
-      },
-      {
-        enableHighAccuracy: false, // Changed to false for better compatibility
-        timeout: 10000, // Reduced timeout for faster response
-        maximumAge: 600000 // 10 minutes
-      }
-    );
-  };
 
   const loadDoctors = () => {
     try {
@@ -738,7 +673,7 @@ const FindDoctors: React.FC = () => {
 
 
 
-  // Combine registered doctors with mock doctors for demonstration
+  // Combine registered doctors with mock doctors
   const allDoctors: UnifiedDoctor[] = [
     ...doctors.map(doctor => ({
       ...doctor,
@@ -749,7 +684,7 @@ const FindDoctors: React.FC = () => {
       ...mockDoctor,
       // Add required User fields for mock doctors
       email: `${mockDoctor.id}@patientcare.bh`,
-      password: 'demo123',
+      password: 'password123',
       userType: 'doctor' as const,
       cpr: `99${mockDoctor.id.padStart(7, '0')}`,
       status: 'verified' as const,
@@ -799,11 +734,7 @@ const FindDoctors: React.FC = () => {
         return (a.consultationFee || a.fee || 0) - (b.consultationFee || b.fee || 0);
       case 'fee-high':
         return (b.consultationFee || b.fee || 0) - (a.consultationFee || a.fee || 0);
-      case 'distance':
-        if (!userLocation) return 0;
-        const aDistance = a.coordinates ? calculateDistance(userLocation.lat, userLocation.lng, a.coordinates.lat, a.coordinates.lng) : Infinity;
-        const bDistance = b.coordinates ? calculateDistance(userLocation.lat, userLocation.lng, b.coordinates.lat, b.coordinates.lng) : Infinity;
-        return aDistance - bDistance;
+
       default:
         return 0;
     }
@@ -830,7 +761,7 @@ const FindDoctors: React.FC = () => {
     // Find the doctor to get their name
     const doctor = allDoctors.find(d => d.id === doctorId);
     if (doctor) {
-      setSelectedDoctor({ id: doctorId, name: doctor.name });
+      setSelectedDoctor(doctor);
       setShowBookingModal(true);
     }
   };
@@ -1019,11 +950,12 @@ const FindDoctors: React.FC = () => {
                   backgroundColor: 'white'
                 }}
               >
+                <option value="" disabled>Filter</option>
                 <option value="rating">Highest Rated</option>
                 <option value="experience">Most Experienced</option>
                 <option value="fee-low">Lowest Fee</option>
                 <option value="fee-high">Highest Fee</option>
-                {userLocation && <option value="distance">Nearest to Me</option>}
+
               </select>
             </div>
           </div>
@@ -1051,124 +983,10 @@ const FindDoctors: React.FC = () => {
                   <span> in <span style={{ fontWeight: '600', color: '#2563eb' }}>{selectedLocation}</span></span>
                 )}
               </p>
-              
-              {/* Refresh Button */}
-              <button
-                onClick={() => {
-                  loadDoctors();
-                  showToast('Doctors list refreshed', 'success');
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  color: '#374151',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f9fafb';
-                  e.currentTarget.style.borderColor = '#0d9488';
-                  e.currentTarget.style.color = '#0d9488';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'white';
-                  e.currentTarget.style.borderColor = '#d1d5db';
-                  e.currentTarget.style.color = '#374151';
-                }}
-                title="Refresh doctors list"
-              >
-                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh
-              </button>
+
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button 
-                onClick={() => {
-                  if (locationPermission === 'denied') {
-                    // Reset permission state and try again
-                    setLocationPermission('prompt');
-                  }
-                  getUserLocation();
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 16px',
-                  backgroundColor: userLocation ? '#dcfce7' : locationPermission === 'denied' ? '#fef2f2' : '#f3f4f6',
-                  border: `1px solid ${userLocation ? '#16a34a' : locationPermission === 'denied' ? '#ef4444' : '#d1d5db'}`,
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  color: userLocation ? '#166534' : locationPermission === 'denied' ? '#dc2626' : '#374151',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = userLocation ? '#bbf7d0' : locationPermission === 'denied' ? '#fee2e2' : '#e5e7eb';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = userLocation ? '#dcfce7' : locationPermission === 'denied' ? '#fef2f2' : '#f3f4f6';
-                }}
-                title={locationPermission === 'denied' ? 'Click to retry location access' : 'Get your current location to find nearby doctors'}
-              >
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                {userLocation ? 'Location Detected' : locationPermission === 'denied' ? 'Retry Location' : 'Near Me'}
-              </button>
-              {userLocation && (
-                <>
-                  <button
-                    onClick={() => setSortBy('distance')}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: sortBy === 'distance' ? '#0d9488' : 'white',
-                      color: sortBy === 'distance' ? 'white' : '#0d9488',
-                      border: '1px solid #0d9488',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    Sort by Distance
-                  </button>
-                  <button
-                    onClick={() => {
-                      setUserLocation(null);
-                      setLocationPermission('prompt');
-                      if (sortBy === 'distance') {
-                        setSortBy('rating');
-                      }
-                      showToast('Location cleared', 'info');
-                    }}
-                    style={{
-                      padding: '8px 12px',
-                      backgroundColor: '#f3f4f6',
-                      color: '#6b7280',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    title="Clear location"
-                  >
-                    ×
-                  </button>
-                </>
-              )}
-            </div>
+
           </div>
 
           {/* Doctor Cards Grid */}
@@ -1179,10 +997,6 @@ const FindDoctors: React.FC = () => {
             marginBottom: '40px'
           }}>
             {paginatedDoctors.map((doctor) => {
-              const distance = userLocation && doctor.coordinates 
-                ? calculateDistance(userLocation.lat, userLocation.lng, doctor.coordinates.lat, doctor.coordinates.lng)
-                : undefined;
-              
               return (
                 <div key={doctor.id} style={{ height: '100%' }}>
                   <DoctorCard
@@ -1190,7 +1004,6 @@ const FindDoctors: React.FC = () => {
                     onBookAppointment={handleBookAppointment}
                     onViewProfile={handleViewProfile}
                     isUserLoggedIn={userLoggedIn}
-                    distance={distance}
                   />
                 </div>
               );
@@ -1346,9 +1159,41 @@ const FindDoctors: React.FC = () => {
       
       {/* Booking Modal */}
       {showBookingModal && selectedDoctor && (
-        <BookAppointmentDemo
-          doctorId={selectedDoctor.id}
-          doctorName={selectedDoctor.name}
+        <AppointmentBooking
+          open={showBookingModal}
+          doctor={{
+            userId: selectedDoctor.id,
+            name: selectedDoctor.name,
+            profilePicture: undefined,
+            medicalLicenseNumber: selectedDoctor.cpr || '',
+            licenseVerificationStatus: 'verified' as const,
+            qualifications: selectedDoctor.qualifications ? [selectedDoctor.qualifications] : [],
+            yearsOfExperience: typeof selectedDoctor.experience === 'number' ? selectedDoctor.experience : parseInt(selectedDoctor.experience?.toString() || '0'),
+            specializations: [selectedDoctor.specialization || selectedDoctor.specialty || ''].filter(Boolean),
+            contactInfo: {
+              phone: selectedDoctor.phone || '',
+              email: selectedDoctor.email
+            },
+            clinicInfo: {
+              name: selectedDoctor.hospital || '',
+              address: {
+                street: selectedDoctor.clinicAddress || '',
+                city: selectedDoctor.location || '',
+                state: '',
+                zipCode: '',
+                country: 'Bahrain'
+              },
+              contactInfo: {
+                phone: selectedDoctor.phone || '',
+                email: selectedDoctor.email
+              },
+              facilities: []
+            },
+            consultationFee: selectedDoctor.consultationFee || 0,
+            rating: selectedDoctor.rating || 0,
+            totalReviews: selectedDoctor.totalReviews || 0,
+            isAcceptingPatients: true
+          }}
           onClose={() => {
             setShowBookingModal(false);
             setSelectedDoctor(null);

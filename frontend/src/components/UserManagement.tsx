@@ -33,7 +33,7 @@ const UserManagement: React.FC = () => {
       <div style={{ marginBottom: '24px' }}>
         <h2 style={{ color: '#111827', marginBottom: '8px' }}>User Management</h2>
         <p style={{ color: '#6b7280', fontSize: '14px' }}>
-          Demo utility to view and manage registered users
+          Utility to view and manage registered users
         </p>
       </div>
 

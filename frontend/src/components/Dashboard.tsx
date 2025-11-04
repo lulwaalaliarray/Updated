@@ -258,7 +258,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     calculateStats();
   }, [user]);
 
-  // For doctors, show dashboard with doctor-specific statistics
+  // For doctors, show dashboard with admin-specific statistics
   // Note: PastPatients is accessible via navigation
 
   // For admin users, show admin-specific dashboard

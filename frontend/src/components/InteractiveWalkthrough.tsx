@@ -59,7 +59,7 @@ const InteractiveWalkthrough: React.FC = () => {
       title: 'For Healthcare Providers 🩺',
       description: 'Manage availability and write prescriptions',
       content: 'Doctors can easily manage their availability, approve appointments, write digital prescriptions, and track patient interactions.',
-      action: 'Doctor Dashboard',
+      action: 'Admin Dashboard',
       highlight: 'doctor-section',
       duration: 4000
     },

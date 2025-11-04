@@ -5,7 +5,7 @@ import FeaturesSection from './FeaturesSection';
 import StatsSection from './StatsSection';
 import Footer from './Footer';
 import BackToTopButton from './BackToTopButton';
-import DoctorDashboard from './DoctorDashboard';
+import AdminDashboard from './AdminDashboard';
 import { isLoggedIn } from '../utils/navigation';
 
 interface WelcomeScreenProps {
@@ -89,9 +89,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onGetStarted }) => {
     );
   }
 
-  // If user is logged in and is a doctor, show DoctorDashboard
+  // If user is logged in and is a doctor, show AdminDashboard
   if (user && user.userType === 'doctor') {
-    return <DoctorDashboard user={user} />;
+    return <AdminDashboard user={user} />;
   }
 
   // If user is logged in but is a patient, show regular dashboard

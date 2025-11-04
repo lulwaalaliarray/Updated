@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
-import DoctorDashboard from './DoctorDashboard';
+import AdminDashboard from './AdminDashboard';
 
 interface SimpleDashboardProps {
   user: {
@@ -16,9 +16,9 @@ interface SimpleDashboardProps {
 const SimpleDashboard: React.FC<SimpleDashboardProps> = ({ user }) => {
   const navigate = useNavigate();
   
-  // If user is a doctor, show the DoctorDashboard
+  // If user is a doctor, show the AdminDashboard
   if (user.userType === 'doctor') {
-    return <DoctorDashboard user={user} />;
+    return <AdminDashboard user={user} />;
   }
 
   // For patients and other user types, show the patient dashboard

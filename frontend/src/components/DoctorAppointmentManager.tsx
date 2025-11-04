@@ -72,29 +72,7 @@ const DoctorAppointmentManager: React.FC = () => {
     }
   };
 
-  const handleViewPatientDetails = (appointment: Appointment) => {
-    // Check if doctor has completed appointments with this patient
-    const userData = localStorage.getItem('userData');
-    if (!userData) return;
-    
-    const user = JSON.parse(userData);
-    const doctorId = user.id || user.email;
-    
-    const allAppointments = appointmentStorage.getAllAppointments();
-    const hasCompletedAppointment = allAppointments.some(apt => 
-      (apt.patientId === appointment.patientId || apt.patientEmail === appointment.patientEmail) &&
-      apt.doctorId === doctorId &&
-      apt.status === 'completed'
-    );
-    
-    if (!hasCompletedAppointment) {
-      showToast('You can only view patient records after completing an appointment with them', 'info');
-      return;
-    }
-    
-    // Navigate to patient records - we'll create a route that shows records for this specific patient
-    navigate(`/patient-records/${appointment.patientId || appointment.patientEmail}`);
-  };
+
 
   const handleConfirmComplete = () => {
     if (!selectedAppointmentForCompletion) return;
@@ -629,33 +607,6 @@ const DoctorAppointmentManager: React.FC = () => {
                       gap: '12px',
                       justifyContent: 'flex-end'
                     }}>
-                      {/* View Patient Details Button - Always visible */}
-                      <button
-                        onClick={() => handleViewPatientDetails(appointment)}
-                        style={{
-                          padding: '8px 16px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          backgroundColor: 'white',
-                          color: '#374151',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#f9fafb';
-                          e.currentTarget.style.borderColor = '#0d9488';
-                          e.currentTarget.style.color = '#0d9488';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'white';
-                          e.currentTarget.style.borderColor = '#d1d5db';
-                          e.currentTarget.style.color = '#374151';
-                        }}
-                      >
-                        View Patient Details
-                      </button>
 
                       {appointment.status === 'pending' && (
                         <div style={{
@@ -750,19 +701,51 @@ const DoctorAppointmentManager: React.FC = () => {
                       
                       {appointment.status === 'completed' && (
                         <div style={{
-                          padding: '8px 16px',
-                          borderRadius: '6px',
-                          backgroundColor: '#dbeafe',
-                          color: '#2563eb',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          border: '1px solid #93c5fd',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '6px'
+                          gap: '12px'
                         }}>
-                          <span>✔️</span>
-                          Consultation Completed
+                          <div style={{
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            backgroundColor: '#dbeafe',
+                            color: '#2563eb',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            border: '1px solid #93c5fd',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}>
+                            <span>✔️</span>
+                            Consultation Completed
+                          </div>
+                          <button
+                            onClick={() => navigate('/write-prescription')}
+                            style={{
+                              padding: '8px 16px',
+                              backgroundColor: '#059669',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              fontWeight: '500',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#047857';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#059669';
+                            }}
+                          >
+                            <span>💊</span>
+                            Write Prescription
+                          </button>
                         </div>
                       )}
                     </div>

@@ -87,7 +87,7 @@ export const createTestAppointment = () => {
         duration: 30,
         type: 'consultation',
         status: 'pending',
-        notes: 'Test appointment for demo',
+        notes: 'Test appointment',
         fee: doctor.consultationFee || 25
       });
       

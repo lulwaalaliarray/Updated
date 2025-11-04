@@ -18,7 +18,7 @@ import DoctorSearchPage from '../../components/DoctorSearch/DoctorSearchPage';
 import AppointmentBooking from '../../components/Booking/AppointmentBooking';
 import PaymentPage from '../../components/Payment/PaymentPage';
 import PatientDashboard from '../../components/Dashboard/PatientDashboard';
-import DoctorDashboard from '../../components/Dashboard/DoctorDashboard';
+import AdminDashboard from '../../components/AdminDashboard';
 import AdminDashboardPage from '../../pages/AdminDashboardPage';
 import AppointmentsPage from '../../pages/AppointmentsPage';
 import MedicalHistoryPage from '../../components/MedicalHistory/MedicalHistoryPage';
@@ -362,7 +362,7 @@ describe('Comprehensive Frontend Validation Tests', () => {
         <Provider store={store}>
           <BrowserRouter>
             <ThemeProvider theme={theme}>
-              <DoctorDashboard />
+              <AdminDashboard />
             </ThemeProvider>
           </BrowserRouter>
         </Provider>

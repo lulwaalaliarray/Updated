@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { scrollToTop } from '../utils/scrollUtils';
+import LightboxVideoPlayer from '../components/LightboxVideoPlayer';
 
 const FeaturesPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [showLightboxVideo, setShowLightboxVideo] = useState(false);
   const features = [
     {
       icon: '📅',
@@ -211,28 +215,37 @@ const FeaturesPage: React.FC = () => {
               }}>
               Get Started Free
             </button>
-            <button style={{
-              padding: '12px 32px',
-              backgroundColor: 'white',
-              color: '#0d9488',
-              border: '2px solid #0d9488',
-              borderRadius: '8px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f0fdfa';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'white';
-            }}>
-              Schedule Demo
+            <button 
+              onClick={() => setShowLightboxVideo(true)}
+              style={{
+                padding: '12px 32px',
+                backgroundColor: 'white',
+                color: '#0d9488',
+                border: '2px solid #0d9488',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f0fdfa';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'white';
+              }}>
+              Watch Demo
             </button>
           </div>
         </div>
       </div>
+
+      {/* Lightbox Video Player */}
+      <LightboxVideoPlayer 
+        isOpen={showLightboxVideo}
+        onClose={() => setShowLightboxVideo(false)}
+        autoPlay={true}
+      />
     </Layout>
   );
 };

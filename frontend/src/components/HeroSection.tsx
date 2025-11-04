@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { handleNavigation, routes } from '../utils/navigation';
 import { useToast } from './Toast';
-import CompactVideoPlayer from './CompactVideoPlayer';
+import LightboxVideoPlayer from './LightboxVideoPlayer';
 
 interface HeroSectionProps {
   onGetStarted?: () => void;
@@ -12,7 +12,7 @@ interface HeroSectionProps {
 const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted, onWatchDemo }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const [showCompactVideo, setShowCompactVideo] = useState(false);
+  const [showLightboxVideo, setShowLightboxVideo] = useState(false);
 
   const handleGetStarted = () => {
     if (onGetStarted) {
@@ -26,7 +26,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted, onWatchDemo }) 
     if (onWatchDemo) {
       onWatchDemo();
     } else {
-      setShowCompactVideo(true);
+      setShowLightboxVideo(true);
     }
   };
   return (
@@ -195,10 +195,11 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onGetStarted, onWatchDemo }) 
         </div>
       </div>
 
-      {/* Compact Video Player */}
-      <CompactVideoPlayer 
-        isOpen={showCompactVideo}
-        onClose={() => setShowCompactVideo(false)}
+      {/* Lightbox Video Player */}
+      <LightboxVideoPlayer 
+        isOpen={showLightboxVideo}
+        onClose={() => setShowLightboxVideo(false)}
+        autoPlay={true}
       />
       
       <style>

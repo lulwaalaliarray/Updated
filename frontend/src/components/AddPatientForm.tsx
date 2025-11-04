@@ -57,7 +57,7 @@ const AddPatientForm: React.FC<AddPatientFormProps> = ({ doctorId, onClose, onAd
 
   const loadRegisteredPatients = () => {
     try {
-      // Map the logged-in doctor to the correct demo doctor ID
+      // Map the logged-in doctor to the correct doctor ID
       let actualDoctorId = doctorId;
 
       const doctorEmailToIdMap: { [key: string]: string } = {

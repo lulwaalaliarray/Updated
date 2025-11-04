@@ -11,7 +11,7 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  IconButton,
+
   useTheme,
   useMediaQuery,
   LinearProgress,
@@ -30,13 +30,13 @@ import { useAppSelector, useAppDispatch } from '../../hooks/redux';
 import { fetchAppointments, updateAppointmentStatus } from '../../store/slices/appointmentSlice';
 import { Appointment } from '../../types';
 
-function DoctorDashboard() {
+function AdminDashboard() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   
-  const { appointments, isLoading } = useAppSelector((state) => state.appointments);
+  const { appointments } = useAppSelector((state) => state.appointments);
   const { user } = useAppSelector((state) => state.auth);
   
   const [pendingAppointments, setPendingAppointments] = useState<Appointment[]>([]);
@@ -45,18 +45,18 @@ function DoctorDashboard() {
 
   useEffect(() => {
     if (user) {
-      dispatch(fetchAppointments());
+      dispatch(fetchAppointments({}));
     }
   }, [dispatch, user]);
 
   useEffect(() => {
-    const pending = appointments.filter(apt => apt.status === 'awaiting_acceptance');
+    const pending = appointments.filter((apt) => apt.status === 'awaiting_acceptance');
     
     const today = new Date();
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
     
-    const todayApts = appointments.filter(apt => {
+    const todayApts = appointments.filter((apt) => {
       const aptDate = new Date(apt.scheduledDateTime);
       return aptDate >= todayStart && aptDate < todayEnd && apt.status === 'confirmed';
     });
@@ -65,21 +65,23 @@ function DoctorDashboard() {
     setTodayAppointments(todayApts);
     
     // Calculate earnings (mock calculation)
-    const completedAppointments = appointments.filter(apt => apt.status === 'completed');
+    const completedAppointments = appointments.filter((apt) => apt.status === 'completed');
+    const consultationFee = (user?.profile as any)?.consultationFee || 25;
+    
     const todayEarnings = completedAppointments
-      .filter(apt => {
+      .filter((apt) => {
         const aptDate = new Date(apt.scheduledDateTime);
         return aptDate >= todayStart && aptDate < todayEnd;
       })
-      .reduce((sum, apt) => sum + (user?.profile?.consultationFee || 0), 0);
+      .reduce((sum) => sum + consultationFee, 0);
     
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const monthEarnings = completedAppointments
-      .filter(apt => new Date(apt.scheduledDateTime) >= monthStart)
-      .reduce((sum, apt) => sum + (user?.profile?.consultationFee || 0), 0);
+      .filter((apt) => new Date(apt.scheduledDateTime) >= monthStart)
+      .reduce((sum) => sum + consultationFee, 0);
     
     const totalEarnings = completedAppointments
-      .reduce((sum, apt) => sum + (user?.profile?.consultationFee || 0), 0);
+      .reduce((sum) => sum + consultationFee, 0);
     
     setEarnings({
       today: todayEarnings,
@@ -117,7 +119,7 @@ function DoctorDashboard() {
   return (
     <Box>
       <Typography variant="h4" component="h1" gutterBottom>
-        Welcome back, Dr. {user?.profile?.name || 'Doctor'}!
+        Welcome back, {user?.profile?.name || 'Admin'}!
       </Typography>
 
       <Grid container spacing={3}>
@@ -135,7 +137,7 @@ function DoctorDashboard() {
                     Today
                   </Typography>
                   <Typography variant="h6" color="primary">
-                    ₹{earnings.today.toLocaleString()}
+                    BHD {earnings.today.toLocaleString()}
                   </Typography>
                 </Box>
                 <Box>
@@ -143,7 +145,7 @@ function DoctorDashboard() {
                     This Month
                   </Typography>
                   <Typography variant="h6" color="success.main">
-                    ₹{earnings.thisMonth.toLocaleString()}
+                    BHD {earnings.thisMonth.toLocaleString()}
                   </Typography>
                 </Box>
                 <Box>
@@ -151,7 +153,7 @@ function DoctorDashboard() {
                     Total Earnings
                   </Typography>
                   <Typography variant="h6">
-                    ₹{earnings.total.toLocaleString()}
+                    BHD {earnings.total.toLocaleString()}
                   </Typography>
                 </Box>
                 <Button
@@ -361,12 +363,12 @@ function DoctorDashboard() {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2">Completed</Typography>
                     <Typography variant="body2">
-                      {appointments.filter(apt => apt.status === 'completed').length}
+                      {appointments.filter((apt) => apt.status === 'completed').length}
                     </Typography>
                   </Box>
                   <LinearProgress 
                     variant="determinate" 
-                    value={appointments.length > 0 ? (appointments.filter(apt => apt.status === 'completed').length / appointments.length) * 100 : 0}
+                    value={appointments.length > 0 ? (appointments.filter((apt) => apt.status === 'completed').length / appointments.length) * 100 : 0}
                     color="success"
                   />
                 </Box>
@@ -374,7 +376,7 @@ function DoctorDashboard() {
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2">Average Rating</Typography>
                     <Typography variant="body2">
-                      {user?.profile?.rating?.toFixed(1) || 'N/A'} ⭐
+                      {(user?.profile as any)?.rating?.toFixed(1) || 'N/A'} ⭐
                     </Typography>
                   </Box>
                 </Box>
@@ -387,4 +389,4 @@ function DoctorDashboard() {
   );
 }
 
-export default DoctorDashboard;
+export default AdminDashboard;
