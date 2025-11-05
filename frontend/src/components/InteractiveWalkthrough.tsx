@@ -14,7 +14,7 @@ const InteractiveWalkthrough: React.FC = () => {
       title: 'Welcome to PatientCare! 👋',
       description: 'Your comprehensive healthcare platform for Bahrain',
       content: 'Hi there! I\'m your PatientCare guide. Let me show you how easy it is to manage your healthcare with our platform.',
-      action: 'Get Started',
+      action: 'Continue',
       highlight: null,
       duration: 3000
     },

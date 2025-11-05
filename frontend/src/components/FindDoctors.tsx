@@ -9,7 +9,7 @@ import DoctorCard from './DoctorCard';
 
 import { reviewStorage } from '../utils/reviewStorage';
 import { inputValidation } from '../utils/inputValidation';
-import AppointmentBooking from './Booking/AppointmentBooking';
+import BookingModal from './Booking/BookingModal';
 
 // Create a unified doctor type for both registered and mock doctors
 type UnifiedDoctor = User & {
@@ -1159,42 +1159,13 @@ const FindDoctors: React.FC = () => {
       
       {/* Booking Modal */}
       {showBookingModal && selectedDoctor && (
-        <AppointmentBooking
-          open={showBookingModal}
-          doctor={{
-            userId: selectedDoctor.id,
-            name: selectedDoctor.name,
-            profilePicture: undefined,
-            medicalLicenseNumber: selectedDoctor.cpr || '',
-            licenseVerificationStatus: 'verified' as const,
-            qualifications: selectedDoctor.qualifications ? [selectedDoctor.qualifications] : [],
-            yearsOfExperience: typeof selectedDoctor.experience === 'number' ? selectedDoctor.experience : parseInt(selectedDoctor.experience?.toString() || '0'),
-            specializations: [selectedDoctor.specialization || selectedDoctor.specialty || ''].filter(Boolean),
-            contactInfo: {
-              phone: selectedDoctor.phone || '',
-              email: selectedDoctor.email
-            },
-            clinicInfo: {
-              name: selectedDoctor.hospital || '',
-              address: {
-                street: selectedDoctor.clinicAddress || '',
-                city: selectedDoctor.location || '',
-                state: '',
-                zipCode: '',
-                country: 'Bahrain'
-              },
-              contactInfo: {
-                phone: selectedDoctor.phone || '',
-                email: selectedDoctor.email
-              },
-              facilities: []
-            },
-            consultationFee: selectedDoctor.consultationFee || 0,
-            rating: selectedDoctor.rating || 0,
-            totalReviews: selectedDoctor.totalReviews || 0,
-            isAcceptingPatients: true
-          }}
+        <BookingModal
+          doctor={selectedDoctor}
           onClose={() => {
+            setShowBookingModal(false);
+            setSelectedDoctor(null);
+          }}
+          onSuccess={() => {
             setShowBookingModal(false);
             setSelectedDoctor(null);
           }}

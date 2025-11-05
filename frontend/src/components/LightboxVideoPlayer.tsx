@@ -322,17 +322,7 @@ useEffect(() => {
                     opacity: currentTime > 3 ? 1 : 0,
                     transition: 'all 1s ease'
                   }}>
-                    <button style={{
-                      padding: '12px 24px',
-                      fontSize: '16px',
-                      backgroundColor: 'white',
-                      color: '#0d9488',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: '700'
-                    }}>
-                      Get Started
-                    </button>
+
                     <button style={{
                       padding: '12px 24px',
                       fontSize: '16px',

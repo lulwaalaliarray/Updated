@@ -353,21 +353,7 @@ const EnhancedScreenRecording: React.FC<EnhancedScreenRecordingProps> = ({
               }}>
                 Connect with qualified healthcare professionals across Bahrain
               </p>
-              <button style={{
-                padding: '16px 32px',
-                fontSize: '18px',
-                backgroundColor: 'white',
-                color: '#0d9488',
-                border: 'none',
-                borderRadius: '12px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                transform: mousePos.x > 45 && mousePos.x < 55 && mousePos.y > 60 && mousePos.y < 70 ? 'scale(1.05)' : 'scale(1)',
-                transition: 'transform 0.3s ease',
-                boxShadow: '0 8px 25px rgba(0, 0, 0, 0.2)'
-              }}>
-                Get Started Today
-              </button>
+
             </div>
           </section>
 

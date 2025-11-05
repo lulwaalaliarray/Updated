@@ -206,20 +206,7 @@ const RealisticScreenRecording: React.FC<ScreenRecordingProps> = ({
                 <p style={{ fontSize: '1.5rem', marginBottom: '2rem', opacity: 0.9 }}>
                   Your Health, Our Priority
                 </p>
-                <button style={{
-                  padding: '1rem 2rem',
-                  fontSize: '1.2rem',
-                  backgroundColor: 'white',
-                  color: '#0d9488',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transform: mousePos.x > 45 && mousePos.x < 55 && mousePos.y > 65 && mousePos.y < 75 ? 'scale(1.05)' : 'scale(1)',
-                  transition: 'transform 0.2s ease'
-                }}>
-                  Get Started
-                </button>
+
               </div>
             </section>
 

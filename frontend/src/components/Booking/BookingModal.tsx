@@ -35,17 +35,51 @@ const BookingModal: React.FC<BookingModalProps> = ({ doctor, onClose, onSuccess 
     return daySchedule && daySchedule.available && daySchedule.timeSlots.length > 0;
   };
 
-  // Get minimum date (today)
-  const getMinDate = () => {
+
+
+  // Generate available dates for the next two weeks
+  const getAvailableDatesForTwoWeeks = () => {
+    const availableDates = [];
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    
+    // Generate dates for the next 14 days
+    for (let i = 0; i < 14; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      const dateString = date.toISOString().split('T')[0];
+      
+      // Check if this date is available
+      if (isDateAvailable(dateString)) {
+        availableDates.push({
+          value: dateString,
+          label: formatDateForDropdown(dateString),
+          dayName: date.toLocaleDateString('en-US', { weekday: 'short' })
+        });
+      }
+    }
+    
+    return availableDates;
   };
 
-  // Get maximum date (3 months from now)
-  const getMaxDate = () => {
-    const maxDate = new Date();
-    maxDate.setMonth(maxDate.getMonth() + 3);
-    return maxDate.toISOString().split('T')[0];
+  // Format date for dropdown display
+  const formatDateForDropdown = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    // Check if it's today or tomorrow
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return 'Tomorrow';
+    } else {
+      return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
   };
 
   // Load available slots for selected date
@@ -253,27 +287,47 @@ const BookingModal: React.FC<BookingModalProps> = ({ doctor, onClose, onSuccess 
               color: '#374151',
               marginBottom: '8px'
             }}>
-              Select Date *
+              Select Date * 
+              <span style={{ 
+                fontSize: '12px', 
+                color: '#6b7280', 
+                fontWeight: '400',
+                marginLeft: '8px'
+              }}>
+                ({getAvailableDatesForTwoWeeks().length} available dates)
+              </span>
             </label>
-            <input
-              type="date"
+            <select
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              min={getMinDate()}
-              max={getMaxDate()}
               required
               style={{
                 width: '100%',
-                padding: '12px',
+                padding: '12px 16px',
                 border: '2px solid #e5e7eb',
                 borderRadius: '8px',
                 fontSize: '16px',
-                transition: 'border-color 0.2s'
+                backgroundColor: 'white',
+                transition: 'border-color 0.2s',
+                cursor: 'pointer',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 12px center',
+                backgroundSize: '16px',
+                paddingRight: '40px'
               }}
               onFocus={(e) => e.target.style.borderColor = '#0d9488'}
               onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-            />
-            {selectedDate && !isDateAvailable(selectedDate) && (
+            >
+              <option value="" disabled>Choose an available date...</option>
+              {getAvailableDatesForTwoWeeks().map((dateOption) => (
+                <option key={dateOption.value} value={dateOption.value}>
+                  {dateOption.label}
+                </option>
+              ))}
+            </select>
+            {getAvailableDatesForTwoWeeks().length === 0 && (
               <div style={{
                 marginTop: '8px',
                 padding: '8px 12px',
@@ -283,7 +337,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ doctor, onClose, onSuccess 
                 fontSize: '14px',
                 color: '#dc2626'
               }}>
-                ⚠️ Doctor is not available on this date. Please select another date.
+                ⚠️ No available dates in the next two weeks. Please contact the doctor directly.
               </div>
             )}
           </div>
