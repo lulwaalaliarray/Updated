@@ -48,7 +48,7 @@ const PersonalMedicalRecords: React.FC = () => {
       );
 
       // Get patient's prescriptions
-      const userPrescriptions = prescriptionStorage.getPatientPrescriptions(userId);
+      const userPrescriptions = prescriptionStorage.getPatientPrescriptionsWithExpiration(userId);
 
       // Combine into medical records
       const medicalRecords: MedicalRecord[] = [];

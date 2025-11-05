@@ -511,7 +511,11 @@ const ReviewDisplay: React.FC = () => {
                       fontSize: '16px',
                       color: '#374151',
                       lineHeight: '1.6',
-                      margin: 0
+                      margin: 0,
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word',
+                      wordBreak: 'break-word',
+                      whiteSpace: 'pre-wrap'
                     }}>
                       {review.comment}
                     </p>

@@ -16,11 +16,14 @@ import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import FeaturesPage from './pages/FeaturesPage';
 import PricingPage from './pages/PricingPage';
-import SecurityPage from './pages/SecurityPage';
+
 import PressPage from './pages/PressPage';
 import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
+import BlogPreviewPage from './pages/BlogPreviewPage';
 import CreateBlogPage from './pages/CreateBlogPage';
+import EditBlogPage from './pages/EditBlogPage';
+
 import HelpPage from './pages/HelpPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
@@ -30,7 +33,7 @@ import EnhancedAvailability from './components/EnhancedAvailability';
 import WritePrescription from './components/WritePrescription';
 import DoctorProfilePage from './pages/DoctorProfilePage';
 import MyAppointmentsPage from './pages/MyAppointmentsPage';
-
+import MyReviewsPage from './pages/MyReviewsPage';
 
 import ViewPrescriptions from './components/ViewPrescriptions';
 import PersonalMedicalRecords from './components/PersonalMedicalRecords';
@@ -130,17 +133,29 @@ function App(): JSX.Element {
           <Route path="/find-doctors" element={<FindDoctors />} />
           <Route path="/doctors" element={<FindDoctors />} />
           <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/security" element={<SecurityPage />} />
+
 
           {/* Company Pages */}
           <Route path="/press" element={<PressPage />} />
           <Route path="/blog" element={<BlogPage />} />
-          <Route path="/blog/:id" element={<BlogPostPage />} />
+          <Route path="/blog/preview" element={<BlogPreviewPage />} />
           <Route path="/blog/create" element={
             <ProtectedRoute message="Please log in as a doctor to create blog posts">
               <CreateBlogPage />
             </ProtectedRoute>
           } />
+          <Route path="/blog/edit/:id" element={
+            <ProtectedRoute message="Please log in as a doctor to edit blog posts">
+              <EditBlogPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/blog/:id" element={<BlogPostPage />} />
+          <Route path="/blog/edit/:id" element={
+            <ProtectedRoute message="Please log in as a doctor to edit blog posts">
+              <CreateBlogPage />
+            </ProtectedRoute>
+          } />
+
           <Route path="/manage-availability" element={
             <ProtectedRoute message="Please log in as a doctor or admin to manage availability">
               <EnhancedAvailability />
@@ -207,6 +222,11 @@ function App(): JSX.Element {
           <Route path="/leave-review/:doctorId" element={
             <ProtectedRoute message="Please log in to leave a review">
               <LeaveReview />
+            </ProtectedRoute>
+          } />
+          <Route path="/my-reviews" element={
+            <ProtectedRoute message="Please log in to view your reviews">
+              <MyReviewsPage />
             </ProtectedRoute>
           } />
           <Route path="/reviews/:doctorId" element={<ReviewDisplay />} />

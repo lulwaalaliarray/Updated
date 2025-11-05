@@ -58,11 +58,12 @@ export const routes = {
   manageAvailability: '/manage-availability',
   prescriptions: '/prescriptions',
   pastPatients: '/past-patients',
+  myReviews: '/my-reviews',
   // Product pages
   features: '/features',
   findDoctors: '/find-doctors',
   pricing: '/pricing',
-  security: '/security',
+
   // Company pages
   press: '/press',
   blog: '/blog',

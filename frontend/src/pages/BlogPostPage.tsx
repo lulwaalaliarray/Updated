@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { getBlogPost, BlogPost } from '../utils/blogStorage';
 import { useToast } from '../components/Toast';
+import { isLoggedIn } from '../utils/navigation';
 
 const BlogPostPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -10,19 +11,40 @@ const BlogPostPage: React.FC = () => {
   const { showToast } = useToast();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    // Get current user
+    if (isLoggedIn()) {
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        try {
+          setUser(JSON.parse(userData));
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+        }
+      }
+    }
+
     if (id) {
       const blogPost = getBlogPost(id);
       if (blogPost) {
-        setPost(blogPost);
+        // Check if post is published or if current user is the author
+        const currentUser = user || (isLoggedIn() ? JSON.parse(localStorage.getItem('userData') || '{}') : null);
+        
+        if (blogPost.published || (currentUser && currentUser.userType === 'doctor' && (currentUser.id === blogPost.authorId || currentUser.email === blogPost.authorId))) {
+          setPost(blogPost);
+        } else {
+          showToast('This blog post is not available', 'error');
+          navigate('/blog');
+        }
       } else {
         showToast('Blog post not found', 'error');
         navigate('/blog');
       }
     }
     setLoading(false);
-  }, [id, navigate, showToast]);
+  }, [id, navigate, showToast, user]);
 
   const handleGoBack = () => {
     navigate('/blog');
@@ -215,6 +237,31 @@ const BlogPostPage: React.FC = () => {
           Back to Blog
         </button>
 
+        {/* Draft Indicator */}
+        {!post.published && user && user.userType === 'doctor' && (
+          <div style={{
+            backgroundColor: '#fef3c7',
+            border: '1px solid #f59e0b',
+            borderRadius: '8px',
+            padding: '16px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <svg width="20" height="20" fill="#f59e0b" viewBox="0 0 24 24">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            <span style={{
+              fontSize: '16px',
+              fontWeight: '600',
+              color: '#92400e'
+            }}>
+              Draft Mode - This post is only visible to you
+            </span>
+          </div>
+        )}
+
         {/* Article Header */}
         <article style={{
           backgroundColor: 'white',
@@ -240,6 +287,18 @@ const BlogPostPage: React.FC = () => {
             }}>
               {post.category}
             </span>
+            {!post.published && (
+              <span style={{
+                padding: '6px 16px',
+                backgroundColor: '#fef3c7',
+                color: '#92400e',
+                borderRadius: '20px',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                Draft
+              </span>
+            )}
             <span style={{
               fontSize: '14px',
               color: '#6b7280'

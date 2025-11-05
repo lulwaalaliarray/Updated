@@ -271,6 +271,7 @@ const Header: React.FC = () => {
               >
                 Availability
               </button>
+
             </>
           )}
           {user && user.userType === 'admin' && (
@@ -500,6 +501,33 @@ const Header: React.FC = () => {
                     >
                       Dashboard
                     </button>
+                    {user.userType === 'patient' && (
+                      <button
+                        onClick={() => {
+                          handleNavClick(routes.myReviews);
+                          setShowDropdown(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 16px',
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          color: '#374151',
+                          textAlign: 'left',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f9fafb';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }}
+                      >
+                        My Reviews
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         handleLogout();
@@ -630,6 +658,7 @@ const Header: React.FC = () => {
                 <button onClick={() => handleNavClick(routes.blog)} style={{ color: '#6b7280', background: 'none', border: 'none', textAlign: 'left', fontWeight: '500', cursor: 'pointer' }}>
                   Blog
                 </button>
+
               </>
             )}
             {user && user.userType === 'admin' && (
@@ -646,6 +675,9 @@ const Header: React.FC = () => {
               <>
                 <button onClick={() => handleNavClick(routes.prescriptions)} style={{ color: '#6b7280', background: 'none', border: 'none', textAlign: 'left', fontWeight: '500', cursor: 'pointer' }}>
                   My Prescriptions
+                </button>
+                <button onClick={() => handleNavClick(routes.myReviews)} style={{ color: '#6b7280', background: 'none', border: 'none', textAlign: 'left', fontWeight: '500', cursor: 'pointer' }}>
+                  My Reviews
                 </button>
               </>
             )}

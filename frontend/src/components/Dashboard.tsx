@@ -7,6 +7,7 @@ import Footer from './Footer';
 import { appointmentStorage } from '../utils/appointmentStorage';
 import { prescriptionStorage } from '../utils/prescriptionStorage';
 import { userStorage } from '../utils/userStorage';
+import { reviewStorage } from '../utils/reviewStorage';
 
 interface DashboardProps {
   user: {
@@ -135,7 +136,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         }).length;
       } else {
         // Patient sees their own prescriptions
-        const userPrescriptions = prescriptionStorage.getPatientPrescriptions(userId);
+        const userPrescriptions = prescriptionStorage.getPatientPrescriptionsWithExpiration(userId);
         prescriptionsThisMonth = userPrescriptions.filter(prescription => {
           const prescDate = new Date(prescription.dateIssued);
           return prescDate.getMonth() === currentMonth && 
@@ -202,7 +203,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         });
       } else {
         // Patient sees their own prescriptions
-        const userPrescriptions = prescriptionStorage.getPatientPrescriptions(userId);
+        const userPrescriptions = prescriptionStorage.getPatientPrescriptionsWithExpiration(userId);
         const recentPrescriptions = userPrescriptions
           .sort((a, b) => new Date(b.dateIssued).getTime() - new Date(a.dateIssued).getTime())
           .slice(0, 2);
@@ -234,7 +235,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         );
 
         // Check which completed appointments don't have reviews yet
-        const reviewStorage = require('../utils/reviewStorage').reviewStorage;
         const existingReviews = reviewStorage.getPatientReviews(userId);
         
         const appointmentsNeedingReviews = completedAppointments.filter(apt => {
@@ -428,6 +428,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             </svg>
           ),
           action: () => navigate('/prescriptions')
+        },
+        {
+          title: 'My Reviews',
+          description: 'View and manage your doctor reviews',
+          icon: (
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12,15.39L8.24,17.66L9.23,13.38L5.91,10.5L10.29,10.13L12,6.09L13.71,10.13L18.09,10.5L14.77,13.38L15.76,17.66M22,9.24L14.81,8.63L12,2L9.19,8.63L2,9.24L7.45,13.97L5.82,21L12,17.27L18.18,21L16.54,13.97L22,9.24Z"/>
+            </svg>
+          ),
+          action: () => navigate(routes.myReviews)
         },
         {
           title: 'Health Blog',

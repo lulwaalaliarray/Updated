@@ -160,7 +160,7 @@ const RealisticScreenRecording: React.FC<ScreenRecordingProps> = ({
       case 'show_contact':
         setShowPopup(true);
         moveMouseTo(80, 8);
-        setTimeout(() => setShowPopup(false), 1500);
+        setTimeout(() => setShowPopup(false), 3000);
         break;
       
       case 'zoom_out':

@@ -7,15 +7,21 @@ import { appointmentStorage, Appointment } from '../utils/appointmentStorage';
 import { userStorage } from '../utils/userStorage';
 import { useToast } from '../components/Toast';
 import { isLoggedIn } from '../utils/navigation';
+import { reviewStorage } from '../utils/reviewStorage';
+import EditReviewModal from '../components/EditReviewModal';
 
 const MyAppointmentsPage: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'previous'>('upcoming');
-  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
-  const [previousAppointments, setPreviousAppointments] = useState<Appointment[]>([]);
+  const [activeTab, setActiveTab] = useState<'active' | 'completed' | 'cancelled'>('active');
+  const [activeAppointments, setActiveAppointments] = useState<Appointment[]>([]);
+  const [completedAppointments, setCompletedAppointments] = useState<Appointment[]>([]);
+  const [cancelledAppointments, setCancelledAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userReviews, setUserReviews] = useState<any[]>([]);
+  const [editingReview, setEditingReview] = useState<any>(null);
+  const [doctorInfo, setDoctorInfo] = useState<{ [key: string]: any }>({});
 
   useEffect(() => {
     // Check if user is logged in
@@ -31,6 +37,7 @@ const MyAppointmentsPage: React.FC = () => {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
         loadAppointments(parsedUser.id || parsedUser.email);
+        loadUserReviews(parsedUser.id || parsedUser.email);
       } catch (error) {
         console.error('Error parsing user data:', error);
         navigate('/login');
@@ -42,10 +49,9 @@ const MyAppointmentsPage: React.FC = () => {
   const loadAppointments = (userId: string) => {
     const allAppointments = appointmentStorage.getPatientAppointments(userId);
     
-    // Separate upcoming and previous appointments
-    const today = new Date().toISOString().split('T')[0];
-    const upcoming = allAppointments.filter(apt => 
-      apt.date >= today && apt.status !== 'cancelled' && apt.status !== 'completed'
+    // Separate appointments by status
+    const active = allAppointments.filter(apt => 
+      apt.status === 'pending' || apt.status === 'confirmed'
     ).sort((a, b) => {
       const dateCompare = a.date.localeCompare(b.date);
       if (dateCompare === 0) {
@@ -54,8 +60,8 @@ const MyAppointmentsPage: React.FC = () => {
       return dateCompare;
     });
 
-    const previous = allAppointments.filter(apt => 
-      apt.date < today || apt.status === 'completed' || apt.status === 'cancelled'
+    const completed = allAppointments.filter(apt => 
+      apt.status === 'completed'
     ).sort((a, b) => {
       const dateCompare = b.date.localeCompare(a.date); // Most recent first
       if (dateCompare === 0) {
@@ -64,13 +70,76 @@ const MyAppointmentsPage: React.FC = () => {
       return dateCompare;
     });
 
-    setUpcomingAppointments(upcoming);
-    setPreviousAppointments(previous);
+    const cancelled = allAppointments.filter(apt => 
+      apt.status === 'cancelled' || apt.status === 'rejected'
+    ).sort((a, b) => {
+      const dateCompare = b.date.localeCompare(a.date); // Most recent first
+      if (dateCompare === 0) {
+        return b.time.localeCompare(a.time);
+      }
+      return dateCompare;
+    });
+
+    setActiveAppointments(active);
+    setCompletedAppointments(completed);
+    setCancelledAppointments(cancelled);
   };
 
-  const handleCancelAppointment = (appointmentId: string) => {
+  const loadUserReviews = (userId: string) => {
+    try {
+      // Get user's reviews
+      const reviews = reviewStorage.getPatientReviews(userId);
+      setUserReviews(reviews);
+
+      // Load doctor information for reviews
+      const userStorageData = localStorage.getItem('patientcare_users');
+      if (userStorageData) {
+        const users = JSON.parse(userStorageData);
+        const doctorInfoMap: { [key: string]: any } = {};
+        
+        reviews.forEach(review => {
+          const doctor = users.find((user: any) => 
+            user.id === review.doctorId && user.userType === 'doctor'
+          );
+          
+          if (doctor) {
+            doctorInfoMap[review.doctorId] = {
+              id: doctor.id,
+              name: doctor.name,
+              specialization: doctor.specialization || 'General Medicine'
+            };
+          }
+        });
+        
+        setDoctorInfo(doctorInfoMap);
+      }
+    } catch (error) {
+      console.error('Error loading user reviews:', error);
+    }
+  };
+
+  const getUserReviewForDoctor = (doctorId: string) => {
+    return userReviews.find(review => review.doctorId === doctorId);
+  };
+
+  const handleEditReview = (review: any) => {
+    setEditingReview(review);
+  };
+
+  const handleSaveReview = (updatedReview: any) => {
+    // Update the reviews list with the updated review
+    setUserReviews(userReviews.map(review => 
+      review.id === updatedReview.id ? updatedReview : review
+    ));
+  };
+
+  const handleCloseModal = () => {
+    setEditingReview(null);
+  };
+
+  const handleCancelAppointment = async (appointmentId: string) => {
     if (window.confirm('Are you sure you want to cancel this appointment?')) {
-      if (appointmentStorage.cancelAppointment(appointmentId, 'Cancelled by patient')) {
+      if (await appointmentStorage.cancelAppointment(appointmentId, 'Cancelled by patient')) {
         showToast('Appointment cancelled successfully', 'info');
         loadAppointments(user.id || user.email);
       } else {
@@ -276,8 +345,8 @@ const MyAppointmentsPage: React.FC = () => {
           </span>
         </div>
 
-        {/* Notes */}
-        {appointment.notes && (
+        {/* Patient Notes */}
+        {appointment.notes && appointment.status !== 'completed' && (
           <div id={`notes-${appointment.id}`} style={{
             padding: '12px',
             backgroundColor: '#f8fafc',
@@ -296,9 +365,13 @@ const MyAppointmentsPage: React.FC = () => {
               textOverflow: 'ellipsis',
               display: '-webkit-box',
               WebkitLineClamp: 3,
-              WebkitBoxOrient: 'vertical'
+              WebkitBoxOrient: 'vertical',
+              wordWrap: 'break-word',
+              overflowWrap: 'break-word',
+              wordBreak: 'break-word',
+              whiteSpace: 'pre-wrap'
             }}>
-              <strong>Notes:</strong> {appointment.notes}
+              <strong>Your Notes:</strong> {appointment.notes}
             </p>
             {appointment.notes.length > 100 && (
               <button
@@ -309,11 +382,11 @@ const MyAppointmentsPage: React.FC = () => {
                     if (p) {
                       if (p.style.maxHeight === '60px') {
                         p.style.maxHeight = 'none';
-                        p.style.WebkitLineClamp = 'unset';
+                        p.style.webkitLineClamp = 'unset';
                         element.querySelector('button')!.textContent = 'Show less';
                       } else {
                         p.style.maxHeight = '60px';
-                        p.style.WebkitLineClamp = '3';
+                        p.style.webkitLineClamp = '3';
                         element.querySelector('button')!.textContent = 'Show more';
                       }
                     }
@@ -336,6 +409,8 @@ const MyAppointmentsPage: React.FC = () => {
             )}
           </div>
         )}
+
+
 
         {/* Action Buttons */}
         <div style={{
@@ -370,38 +445,49 @@ const MyAppointmentsPage: React.FC = () => {
           
 
 
-          {appointment.status === 'completed' && (
-            <button
-              onClick={() => navigate(`/leave-review/${appointment.doctorId}`)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#0d9488',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#0f766e';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#0d9488';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12,15.39L8.24,17.66L9.23,13.38L5.91,10.5L10.29,10.13L12,6.09L13.71,10.13L18.09,10.5L14.77,13.38L15.76,17.66M22,9.24L14.81,8.63L12,2L9.19,8.63L2,9.24L7.45,13.97L5.82,21L12,17.27L18.18,21L16.54,13.97L22,9.24Z"/>
-              </svg>
-              Write Review
-            </button>
-          )}
+          {appointment.status === 'completed' && (() => {
+            const existingReview = getUserReviewForDoctor(appointment.doctorId);
+            const isEdit = !!existingReview;
+            
+            return (
+              <button
+                onClick={() => {
+                  if (isEdit) {
+                    handleEditReview(existingReview);
+                  } else {
+                    navigate(`/leave-review/${appointment.doctorId}`);
+                  }
+                }}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: isEdit ? '#0f766e' : '#0d9488',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = isEdit ? '#065f46' : '#0f766e';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = isEdit ? '#0f766e' : '#0d9488';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12,15.39L8.24,17.66L9.23,13.38L5.91,10.5L10.29,10.13L12,6.09L13.71,10.13L18.09,10.5L14.77,13.38L15.76,17.66M22,9.24L14.81,8.63L12,2L9.19,8.63L2,9.24L7.45,13.97L5.82,21L12,17.27L18.18,21L16.54,13.97L22,9.24Z"/>
+                </svg>
+                {isEdit ? 'Edit Review' : 'Write Review'}
+              </button>
+            );
+          })()}
         </div>
       </div>
     );
@@ -446,21 +532,55 @@ const MyAppointmentsPage: React.FC = () => {
           marginBottom: '32px',
           boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
         }}>
-          <h1 style={{
-            fontSize: '32px',
-            fontWeight: '700',
-            color: '#111827',
-            marginBottom: '8px'
-          }}>
-            My Appointments
-          </h1>
-          <p style={{
-            fontSize: '16px',
-            color: '#6b7280',
-            margin: 0
-          }}>
-            Manage your healthcare appointments and consultations
-          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+            <div>
+              <h1 style={{
+                fontSize: '32px',
+                fontWeight: '700',
+                color: '#111827',
+                marginBottom: '8px'
+              }}>
+                My Appointments
+              </h1>
+              <p style={{
+                fontSize: '16px',
+                color: '#6b7280',
+                margin: 0
+              }}>
+                Manage your healthcare appointments and consultations
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/my-reviews')}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#0d9488',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#0f766e';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#0d9488';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12,15.39L8.24,17.66L9.23,13.38L5.91,10.5L10.29,10.13L12,6.09L13.71,10.13L18.09,10.5L14.77,13.38L15.76,17.66M22,9.24L14.81,8.63L12,2L9.19,8.63L2,9.24L7.45,13.97L5.82,21L12,17.27L18.18,21L16.54,13.97L22,9.24Z"/>
+              </svg>
+              My Reviews
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -476,12 +596,12 @@ const MyAppointmentsPage: React.FC = () => {
         }}>
           <div style={{ display: 'flex', gap: '4px', flex: 1 }}>
           <button
-            onClick={() => setActiveTab('upcoming')}
+            onClick={() => setActiveTab('active')}
             style={{
               flex: 1,
               padding: '12px 24px',
-              backgroundColor: activeTab === 'upcoming' ? '#0d9488' : 'transparent',
-              color: activeTab === 'upcoming' ? 'white' : '#6b7280',
+              backgroundColor: activeTab === 'active' ? '#0d9488' : 'transparent',
+              color: activeTab === 'active' ? 'white' : '#6b7280',
               border: 'none',
               borderRadius: '12px',
               fontSize: '16px',
@@ -494,24 +614,24 @@ const MyAppointmentsPage: React.FC = () => {
               gap: '8px'
             }}
           >
-            Upcoming Appointments
+            Active
             <span style={{
               padding: '2px 8px',
-              backgroundColor: activeTab === 'upcoming' ? 'rgba(255, 255, 255, 0.2)' : '#f3f4f6',
+              backgroundColor: activeTab === 'active' ? 'rgba(255, 255, 255, 0.2)' : '#f3f4f6',
               borderRadius: '12px',
               fontSize: '12px',
               fontWeight: '600'
             }}>
-              {upcomingAppointments.length}
+              {activeAppointments.length}
             </span>
           </button>
           <button
-            onClick={() => setActiveTab('previous')}
+            onClick={() => setActiveTab('completed')}
             style={{
               flex: 1,
               padding: '12px 24px',
-              backgroundColor: activeTab === 'previous' ? '#0d9488' : 'transparent',
-              color: activeTab === 'previous' ? 'white' : '#6b7280',
+              backgroundColor: activeTab === 'completed' ? '#0d9488' : 'transparent',
+              color: activeTab === 'completed' ? 'white' : '#6b7280',
               border: 'none',
               borderRadius: '12px',
               fontSize: '16px',
@@ -524,15 +644,45 @@ const MyAppointmentsPage: React.FC = () => {
               gap: '8px'
             }}
           >
-            Previous Appointments
+            Completed
             <span style={{
               padding: '2px 8px',
-              backgroundColor: activeTab === 'previous' ? 'rgba(255, 255, 255, 0.2)' : '#f3f4f6',
+              backgroundColor: activeTab === 'completed' ? 'rgba(255, 255, 255, 0.2)' : '#f3f4f6',
               borderRadius: '12px',
               fontSize: '12px',
               fontWeight: '600'
             }}>
-              {previousAppointments.length}
+              {completedAppointments.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveTab('cancelled')}
+            style={{
+              flex: 1,
+              padding: '12px 24px',
+              backgroundColor: activeTab === 'cancelled' ? '#0d9488' : 'transparent',
+              color: activeTab === 'cancelled' ? 'white' : '#6b7280',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            Cancelled
+            <span style={{
+              padding: '2px 8px',
+              backgroundColor: activeTab === 'cancelled' ? 'rgba(255, 255, 255, 0.2)' : '#f3f4f6',
+              borderRadius: '12px',
+              fontSize: '12px',
+              fontWeight: '600'
+            }}>
+              {cancelledAppointments.length}
             </span>
           </button>
           </div>
@@ -569,8 +719,8 @@ const MyAppointmentsPage: React.FC = () => {
 
         {/* Appointments List */}
         <div>
-          {activeTab === 'upcoming' ? (
-            upcomingAppointments.length === 0 ? (
+          {activeTab === 'active' ? (
+            activeAppointments.length === 0 ? (
               <div style={{
                 backgroundColor: 'white',
                 borderRadius: '16px',
@@ -598,7 +748,7 @@ const MyAppointmentsPage: React.FC = () => {
                   color: '#111827',
                   marginBottom: '8px'
                 }}>
-                  No upcoming appointments
+                  No active appointments
                 </h3>
                 <p style={{
                   fontSize: '16px',
@@ -634,11 +784,54 @@ const MyAppointmentsPage: React.FC = () => {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {upcomingAppointments.map(renderAppointmentCard)}
+                {activeAppointments.map(renderAppointmentCard)}
+              </div>
+            )
+          ) : activeTab === 'completed' ? (
+            completedAppointments.length === 0 ? (
+              <div style={{
+                backgroundColor: 'white',
+                borderRadius: '16px',
+                padding: '48px 32px',
+                textAlign: 'center',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
+              }}>
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  backgroundColor: '#f3f4f6',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px'
+                }}>
+                  <svg width="32" height="32" fill="#9ca3af" viewBox="0 0 24 24">
+                    <path d="M9,20.42L2.79,14.21L5.62,11.38L9,14.77L18.88,4.88L21.71,7.71L9,20.42Z"/>
+                  </svg>
+                </div>
+                <h3 style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  marginBottom: '8px'
+                }}>
+                  No completed appointments
+                </h3>
+                <p style={{
+                  fontSize: '16px',
+                  color: '#6b7280'
+                }}>
+                  Your completed appointments will appear here.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {completedAppointments.map(renderAppointmentCard)}
               </div>
             )
           ) : (
-            previousAppointments.length === 0 ? (
+            cancelledAppointments.length === 0 ? (
               <div style={{
                 backgroundColor: 'white',
                 borderRadius: '16px',
@@ -666,19 +859,19 @@ const MyAppointmentsPage: React.FC = () => {
                   color: '#111827',
                   marginBottom: '8px'
                 }}>
-                  No previous appointments
+                  No cancelled appointments
                 </h3>
                 <p style={{
                   fontSize: '16px',
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  Your completed and cancelled appointments will appear here.
+                  Your cancelled and rejected appointments will appear here.
                 </p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {previousAppointments.map(renderAppointmentCard)}
+                {cancelledAppointments.map(renderAppointmentCard)}
               </div>
             )
           )}
@@ -687,6 +880,16 @@ const MyAppointmentsPage: React.FC = () => {
 
       <Footer />
       <BackToTopButton />
+
+      {/* Edit Review Modal */}
+      {editingReview && (
+        <EditReviewModal
+          review={editingReview}
+          doctorName={doctorInfo[editingReview.doctorId]?.name || 'Doctor'}
+          onClose={handleCloseModal}
+          onSave={handleSaveReview}
+        />
+      )}
     </div>
   );
 };

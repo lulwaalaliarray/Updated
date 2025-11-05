@@ -58,7 +58,7 @@ const PatientHomeDashboard: React.FC<{ user: User }> = ({ user }) => {
       });
       
       // Get patient's prescriptions
-      const patientPrescriptions = prescriptionStorage.getPatientPrescriptions(userId);
+      const patientPrescriptions = prescriptionStorage.getPatientPrescriptionsWithExpiration(userId);
       
       // Create recent activity
       const recentActivity: Array<{

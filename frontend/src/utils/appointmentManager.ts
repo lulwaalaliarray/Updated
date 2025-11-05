@@ -11,12 +11,12 @@ export interface AppointmentUpdateEvent {
 // Enhanced appointment management with real-time updates
 export const appointmentManager = {
   // Update appointment status with automatic notifications
-  updateAppointmentStatus: (
+  updateAppointmentStatus: async (
     appointmentId: string, 
     newStatus: Appointment['status'], 
     updatedBy: string,
     notes?: string
-  ): boolean => {
+  ): Promise<boolean> => {
     try {
       const appointments = appointmentStorage.getAllAppointments();
       const appointmentIndex = appointments.findIndex(apt => apt.id === appointmentId);
@@ -28,7 +28,7 @@ export const appointmentManager = {
       const appointment = appointments[appointmentIndex];
       
       // Update the appointment
-      const success = appointmentStorage.updateAppointment(appointmentId, {
+      const success = await appointmentStorage.updateAppointment(appointmentId, {
         status: newStatus,
         notes: notes || appointment.notes,
         updatedAt: new Date().toISOString()

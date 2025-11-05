@@ -12,6 +12,7 @@ const BlogPage: React.FC = () => {
   useEffect(() => {
     // Load blog posts
     const posts = getPublishedBlogPosts();
+    console.log('Loaded published blog posts:', posts.length);
     setBlogPosts(posts);
 
     // Check if user is logged in and is a doctor
@@ -102,6 +103,30 @@ const BlogPage: React.FC = () => {
               Create New Post
             </button>
           )}
+        </div>
+
+
+
+        {/* Refresh Button for Debugging */}
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <button
+            onClick={() => {
+              const posts = getPublishedBlogPosts();
+              setBlogPosts(posts);
+              console.log('Refreshed blog posts:', posts.length);
+            }}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#6b7280',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+          >
+            Refresh Posts ({blogPosts.length} loaded)
+          </button>
         </div>
 
         {/* Blog Posts */}

@@ -29,6 +29,16 @@ export const ReviewStatsComponent: React.FC<ReviewStatsProps> = ({ doctorId }) =
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
+  // Auto-dismiss error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError('');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   useEffect(() => {
     const fetchStats = async () => {
       try {

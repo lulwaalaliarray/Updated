@@ -28,7 +28,7 @@ const ViewPrescriptions: React.FC = () => {
       const user = JSON.parse(userData);
       const userId = user.id || user.email;
       
-      const userPrescriptions = prescriptionStorage.getPatientPrescriptions(userId);
+      const userPrescriptions = prescriptionStorage.getPatientPrescriptionsWithExpiration(userId);
       setPrescriptions(userPrescriptions);
       setLoading(false);
     } catch (error) {

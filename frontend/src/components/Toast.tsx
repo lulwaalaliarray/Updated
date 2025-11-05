@@ -8,13 +8,25 @@ interface ToastProps {
 }
 
 const Toast: React.FC<ToastProps> = ({ message, type, duration = 3000, onClose }) => {
+  const [isVisible, setIsVisible] = useState(true);
+  const [isExiting, setIsExiting] = useState(false);
+
   useEffect(() => {
+    // Auto-dismiss timer
     const timer = setTimeout(() => {
-      onClose();
+      handleClose();
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [duration, onClose]);
+  }, [duration, message]); // Reset timer when message changes
+
+  const handleClose = () => {
+    setIsExiting(true);
+    // Wait for fade out animation to complete before calling onClose
+    setTimeout(() => {
+      onClose();
+    }, 300); // Match the fadeOut animation duration
+  };
 
   const getToastStyles = () => {
     const baseStyles = {
@@ -32,7 +44,9 @@ const Toast: React.FC<ToastProps> = ({ message, type, duration = 3000, onClose }
       gap: '8px',
       minWidth: '300px',
       boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-      animation: 'slideIn 0.3s ease-out'
+      animation: isExiting ? 'fadeOut 0.3s ease-out forwards' : 'slideIn 0.3s ease-out',
+      opacity: isVisible ? 1 : 0,
+      transform: isExiting ? 'translateX(100%)' : 'translateX(0)'
     };
 
     const typeStyles = {
@@ -81,20 +95,39 @@ const Toast: React.FC<ToastProps> = ({ message, type, duration = 3000, onClose }
               opacity: 1;
             }
           }
+          
+          @keyframes fadeOut {
+            from {
+              transform: translateX(0);
+              opacity: 1;
+            }
+            to {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+          }
         `}
       </style>
       <div style={getToastStyles()}>
         {getIcon()}
         <span>{message}</span>
         <button
-          onClick={onClose}
+          onClick={handleClose}
           style={{
             marginLeft: 'auto',
             background: 'none',
             border: 'none',
             color: 'white',
             cursor: 'pointer',
-            padding: '4px'
+            padding: '4px',
+            opacity: 0.8,
+            transition: 'opacity 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = '1';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = '0.8';
           }}
         >
           <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
@@ -114,14 +147,32 @@ interface ToastContextType {
 const ToastContext = React.createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info'; id: number } | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
-    setToast({ message, type });
+    const newToast = { message, type, id: Date.now() };
+    
+    if (toast && !isTransitioning) {
+      // If there's an existing toast, start transition
+      setIsTransitioning(true);
+      setToast(null);
+      
+      // Wait for fade out, then show new toast
+      setTimeout(() => {
+        setToast(newToast);
+        setIsTransitioning(false);
+      }, 350); // Slightly longer than fade out animation
+    } else {
+      // No existing toast or already transitioning, show immediately
+      setToast(newToast);
+      setIsTransitioning(false);
+    }
   };
 
   const hideToast = () => {
     setToast(null);
+    setIsTransitioning(false);
   };
 
   return (
@@ -129,6 +180,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
       {toast && (
         <Toast
+          key={toast.id}
           message={toast.message}
           type={toast.type}
           onClose={hideToast}

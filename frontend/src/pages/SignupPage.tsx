@@ -17,16 +17,7 @@ const SignupPage: React.FC = () => {
     specialization: '',
     consultationFee: '',
     experience: '',
-    qualifications: '',
-    availability: {
-      monday: { available: false, startTime: '09:00', endTime: '17:00' },
-      tuesday: { available: false, startTime: '09:00', endTime: '17:00' },
-      wednesday: { available: false, startTime: '09:00', endTime: '17:00' },
-      thursday: { available: false, startTime: '09:00', endTime: '17:00' },
-      friday: { available: false, startTime: '09:00', endTime: '17:00' },
-      saturday: { available: false, startTime: '09:00', endTime: '17:00' },
-      sunday: { available: false, startTime: '09:00', endTime: '17:00' }
-    }
+    qualifications: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -65,18 +56,7 @@ const SignupPage: React.FC = () => {
     });
   };
 
-  const handleAvailabilityChange = (day: string, field: string, value: string | boolean) => {
-    setFormData({
-      ...formData,
-      availability: {
-        ...formData.availability,
-        [day]: {
-          ...formData.availability[day as keyof typeof formData.availability],
-          [field]: value
-        }
-      }
-    });
-  };
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -168,7 +148,6 @@ const SignupPage: React.FC = () => {
           consultationFee: Number(formData.consultationFee),
           experience: formData.experience,
           qualifications: formData.qualifications,
-          availability: formData.availability,
           rating: 0,
           reviewCount: 0
         })
@@ -198,16 +177,7 @@ const SignupPage: React.FC = () => {
         specialization: '',
         consultationFee: '',
         experience: '',
-        qualifications: '',
-        availability: {
-          monday: { available: false, startTime: '09:00', endTime: '17:00' },
-          tuesday: { available: false, startTime: '09:00', endTime: '17:00' },
-          wednesday: { available: false, startTime: '09:00', endTime: '17:00' },
-          thursday: { available: false, startTime: '09:00', endTime: '17:00' },
-          friday: { available: false, startTime: '09:00', endTime: '17:00' },
-          saturday: { available: false, startTime: '09:00', endTime: '17:00' },
-          sunday: { available: false, startTime: '09:00', endTime: '17:00' }
-        }
+        qualifications: ''
       });
 
       // Redirect to login page after a short delay
@@ -691,95 +661,7 @@ const SignupPage: React.FC = () => {
                   />
                 </div>
 
-                {/* Availability */}
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '12px'
-                  }}>
-                    Weekly Availability
-                  </label>
-                  <div style={{
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    padding: '16px',
-                    backgroundColor: '#f9fafb'
-                  }}>
-                    {Object.entries(formData.availability).map(([day, schedule]) => (
-                      <div key={day} style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        marginBottom: '12px',
-                        flexWrap: 'wrap'
-                      }}>
-                        <label style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          minWidth: '100px',
-                          cursor: 'pointer'
-                        }}>
-                          <input
-                            type="checkbox"
-                            checked={schedule.available}
-                            onChange={(e) => handleAvailabilityChange(day, 'available', e.target.checked)}
-                            style={{
-                              width: '16px',
-                              height: '16px',
-                              accentColor: '#0d9488'
-                            }}
-                          />
-                          <span style={{
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            color: '#374151',
-                            textTransform: 'capitalize'
-                          }}>
-                            {day}
-                          </span>
-                        </label>
-                        {schedule.available && (
-                          <>
-                            <input
-                              type="time"
-                              value={schedule.startTime}
-                              onChange={(e) => handleAvailabilityChange(day, 'startTime', e.target.value)}
-                              style={{
-                                padding: '6px 8px',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '4px',
-                                fontSize: '14px'
-                              }}
-                            />
-                            <span style={{ color: '#6b7280', fontSize: '14px' }}>to</span>
-                            <input
-                              type="time"
-                              value={schedule.endTime}
-                              onChange={(e) => handleAvailabilityChange(day, 'endTime', e.target.value)}
-                              style={{
-                                padding: '6px 8px',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '4px',
-                                fontSize: '14px'
-                              }}
-                            />
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <p style={{
-                    fontSize: '12px',
-                    color: '#6b7280',
-                    marginTop: '4px'
-                  }}>
-                    Set your weekly availability. You can modify this later in your profile.
-                  </p>
-                </div>
+
               </>
             )}
 

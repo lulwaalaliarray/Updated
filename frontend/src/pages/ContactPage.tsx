@@ -92,6 +92,11 @@ const ContactPage: React.FC = () => {
       setIsSubmitting(false);
       setShowSuccessPopup(true);
       
+      // Auto-dismiss popup after 3 seconds
+      setTimeout(() => {
+        setShowSuccessPopup(false);
+      }, 3000);
+      
       // Clear form
       setFormData({
         name: '',

@@ -26,7 +26,8 @@ const UpcomingAppointments: React.FC = () => {
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData);
-        if (parsedUser.userType !== 'doctor') {
+        // Only show access denied if user data is properly loaded and user is not a doctor
+        if (parsedUser && parsedUser.userType && parsedUser.userType !== 'doctor') {
           showToast('Access denied. Doctors only.', 'error');
           navigate('/');
           return;
@@ -46,8 +47,8 @@ const UpcomingAppointments: React.FC = () => {
     setUpcomingAppointments(appointments);
   };
 
-  const handleAcceptAppointment = (appointmentId: string) => {
-    if (appointmentStorage.confirmAppointment(appointmentId)) {
+  const handleAcceptAppointment = async (appointmentId: string) => {
+    if (await appointmentStorage.confirmAppointment(appointmentId)) {
       showToast('Appointment accepted successfully', 'success');
       loadUpcomingAppointments(user.id || user.email);
     } else {
@@ -55,8 +56,8 @@ const UpcomingAppointments: React.FC = () => {
     }
   };
 
-  const handleRejectAppointment = (appointmentId: string) => {
-    if (appointmentStorage.updateAppointment(appointmentId, { status: 'rejected' })) {
+  const handleRejectAppointment = async (appointmentId: string) => {
+    if (await appointmentStorage.updateAppointment(appointmentId, { status: 'rejected' })) {
       showToast('Appointment rejected', 'info');
       loadUpcomingAppointments(user.id || user.email);
     } else {
@@ -64,8 +65,8 @@ const UpcomingAppointments: React.FC = () => {
     }
   };
 
-  const handleCompleteAppointment = (appointmentId: string) => {
-    if (appointmentStorage.completeAppointment(appointmentId)) {
+  const handleCompleteAppointment = async (appointmentId: string) => {
+    if (await appointmentStorage.completeAppointment(appointmentId)) {
       showToast('Appointment marked as completed', 'success');
       loadUpcomingAppointments(user.id || user.email);
     } else {
@@ -73,8 +74,8 @@ const UpcomingAppointments: React.FC = () => {
     }
   };
 
-  const handleCancelAppointment = (appointmentId: string) => {
-    if (appointmentStorage.cancelAppointment(appointmentId, 'Cancelled by doctor')) {
+  const handleCancelAppointment = async (appointmentId: string) => {
+    if (await appointmentStorage.cancelAppointment(appointmentId, 'Cancelled by doctor')) {
       showToast('Appointment cancelled', 'info');
       loadUpcomingAppointments(user.id || user.email);
     } else {

@@ -92,6 +92,17 @@ export const AppointmentManagement: React.FC = () => {
   const [appointments, setAppointments] = useState<PaginatedAppointments | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-dismiss error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const [filters, setFilters] = useState<AppointmentFilters>({
     page: 1,
     limit: 10,

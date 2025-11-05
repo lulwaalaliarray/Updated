@@ -17,7 +17,7 @@ export interface Prescription {
   diagnosis: string;
   notes?: string;
   dateIssued: string;
-  status: 'active' | 'completed' | 'cancelled';
+  status: 'active' | 'completed' | 'cancelled' | 'expired';
   createdAt: string;
   updatedAt: string;
 }
@@ -135,5 +135,78 @@ export const prescriptionStorage = {
       console.error('Error deleting prescription:', error);
       return false;
     }
+  },
+
+  // Check and update expired prescriptions
+  updateExpiredPrescriptions: (): number => {
+    try {
+      const prescriptions = prescriptionStorage.getAllPrescriptions();
+      let updatedCount = 0;
+      const currentDate = new Date();
+
+      const updatedPrescriptions = prescriptions.map(prescription => {
+        // Only check active prescriptions
+        if (prescription.status !== 'active') {
+          return prescription;
+        }
+
+        // Calculate expiration date based on the longest duration medication
+        let maxDurationDays = 0;
+        prescription.medications.forEach(medication => {
+          const durationMatch = medication.duration.match(/(\d+)\s*(day|days|week|weeks|month|months)/i);
+          if (durationMatch) {
+            const value = parseInt(durationMatch[1]);
+            const unit = durationMatch[2].toLowerCase();
+            
+            let durationInDays = 0;
+            if (unit.startsWith('day')) {
+              durationInDays = value;
+            } else if (unit.startsWith('week')) {
+              durationInDays = value * 7;
+            } else if (unit.startsWith('month')) {
+              durationInDays = value * 30; // Approximate month as 30 days
+            }
+            
+            maxDurationDays = Math.max(maxDurationDays, durationInDays);
+          }
+        });
+
+        // If we found a valid duration, check if it's expired
+        if (maxDurationDays > 0) {
+          const issuedDate = new Date(prescription.dateIssued);
+          const expirationDate = new Date(issuedDate);
+          expirationDate.setDate(expirationDate.getDate() + maxDurationDays);
+
+          if (currentDate > expirationDate) {
+            updatedCount++;
+            return {
+              ...prescription,
+              status: 'expired' as const,
+              updatedAt: new Date().toISOString()
+            };
+          }
+        }
+
+        return prescription;
+      });
+
+      // Save updated prescriptions if any were expired
+      if (updatedCount > 0) {
+        localStorage.setItem(PRESCRIPTIONS_STORAGE_KEY, JSON.stringify(updatedPrescriptions));
+      }
+
+      return updatedCount;
+    } catch (error) {
+      console.error('Error updating expired prescriptions:', error);
+      return 0;
+    }
+  },
+
+  // Get prescriptions with automatic expiration check
+  getPatientPrescriptionsWithExpiration: (patientId: string): Prescription[] => {
+    // First update any expired prescriptions
+    prescriptionStorage.updateExpiredPrescriptions();
+    // Then return the updated list
+    return prescriptionStorage.getPatientPrescriptions(patientId);
   }
 };

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { saveBlogPost, generateBlogId, BlogPost } from '../utils/blogStorage';
+import { saveBlogPost, generateBlogId, getBlogPost, BlogPost } from '../utils/blogStorage';
 import { useToast } from '../components/Toast';
 import { isLoggedIn } from '../utils/navigation';
 
 const CreateBlogPage: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { id } = useParams<{ id: string }>();
   const [user, setUser] = useState<any>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -15,9 +16,11 @@ const CreateBlogPage: React.FC = () => {
     content: '',
     category: 'Health Tips',
     tags: '',
-    published: false
+    published: true
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [existingPost, setExistingPost] = useState<BlogPost | null>(null);
 
   useEffect(() => {
     // Check if user is logged in and is a doctor
@@ -37,12 +40,40 @@ const CreateBlogPage: React.FC = () => {
           return;
         }
         setUser(parsedUser);
+
+        // If editing, load the existing post
+        if (id) {
+          const post = getBlogPost(id);
+          if (post) {
+            // Check if the current user is the author
+            if (post.authorId !== (parsedUser.id || parsedUser.email)) {
+              showToast('You can only edit your own blog posts', 'error');
+              navigate('/dashboard');
+              return;
+            }
+            
+            setExistingPost(post);
+            setIsEditing(true);
+            setFormData({
+              title: post.title,
+              excerpt: post.excerpt,
+              content: post.content,
+              category: post.category,
+              tags: post.tags.join(', '),
+              published: true
+            });
+          } else {
+            showToast('Blog post not found', 'error');
+            navigate('/dashboard');
+            return;
+          }
+        }
       } catch (error) {
         console.error('Error parsing user data:', error);
         navigate('/login');
       }
     }
-  }, [navigate, showToast]);
+  }, [navigate, showToast, id]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -76,25 +107,27 @@ const CreateBlogPage: React.FC = () => {
 
     try {
       const blogPost: BlogPost = {
-        id: generateBlogId(),
+        id: isEditing && existingPost ? existingPost.id : generateBlogId(),
         title: formData.title.trim(),
         excerpt: formData.excerpt.trim(),
         content: formData.content.trim(),
         author: user.name,
         authorId: user.id || user.email,
-        date: new Date().toISOString().split('T')[0],
+        date: isEditing && existingPost ? existingPost.date : new Date().toISOString().split('T')[0],
         category: formData.category,
         readTime: calculateReadTime(formData.content),
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
-        published: formData.published
+        published: true
       };
 
       saveBlogPost(blogPost);
       showToast(
-        formData.published ? 'Blog post published successfully!' : 'Blog post saved as draft!',
+        isEditing 
+          ? 'Blog post updated and published!'
+          : 'Blog post published successfully!',
         'success'
       );
-      navigate('/blog');
+      navigate('/dashboard');
     } catch (error) {
       console.error('Error saving blog post:', error);
       showToast('Error saving blog post. Please try again.', 'error');
@@ -103,23 +136,7 @@ const CreateBlogPage: React.FC = () => {
     }
   };
 
-  const handlePreview = () => {
-    if (!formData.title.trim() || !formData.content.trim()) {
-      showToast('Please add a title and content to preview', 'error');
-      return;
-    }
-    
-    // Store preview data temporarily
-    const previewData = {
-      ...formData,
-      author: user?.name || 'Preview Author',
-      date: new Date().toISOString().split('T')[0],
-      readTime: calculateReadTime(formData.content)
-    };
-    
-    localStorage.setItem('blog_preview', JSON.stringify(previewData));
-    window.open('/blog/preview', '_blank');
-  };
+
 
   if (!user) {
     return (
@@ -162,14 +179,17 @@ const CreateBlogPage: React.FC = () => {
             color: '#111827',
             marginBottom: '8px'
           }}>
-            Create New Blog Post
+            {isEditing ? 'Edit Blog Post' : 'Create New Blog Post'}
           </h1>
           <p style={{
             fontSize: '16px',
             color: '#6b7280',
             margin: 0
           }}>
-            Share your medical knowledge and insights with patients and colleagues
+            {isEditing 
+              ? 'Update your blog post and share your latest insights'
+              : 'Share your medical knowledge and insights with patients and colleagues'
+            }
           </p>
         </div>
 
@@ -359,34 +379,7 @@ const CreateBlogPage: React.FC = () => {
               />
             </div>
 
-            {/* Publish Option */}
-            <div style={{ marginBottom: '32px' }}>
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer'
-              }}>
-                <input
-                  type="checkbox"
-                  name="published"
-                  checked={formData.published}
-                  onChange={handleInputChange}
-                  style={{
-                    width: '16px',
-                    height: '16px',
-                    accentColor: '#0d9488'
-                  }}
-                />
-                <span style={{
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#111827'
-                }}>
-                  Publish immediately (uncheck to save as draft)
-                </span>
-              </label>
-            </div>
+
 
             {/* Action Buttons */}
             <div style={{
@@ -397,7 +390,7 @@ const CreateBlogPage: React.FC = () => {
             }}>
               <button
                 type="button"
-                onClick={() => navigate('/blog')}
+                onClick={() => navigate('/dashboard')}
                 style={{
                   padding: '12px 24px',
                   backgroundColor: 'transparent',
@@ -417,30 +410,6 @@ const CreateBlogPage: React.FC = () => {
                 }}
               >
                 Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={handlePreview}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: 'transparent',
-                  color: '#0d9488',
-                  border: '1px solid #0d9488',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f0fdfa';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                }}
-              >
-                Preview
               </button>
 
               <button
@@ -468,7 +437,12 @@ const CreateBlogPage: React.FC = () => {
                   }
                 }}
               >
-                {isSubmitting ? 'Saving...' : (formData.published ? 'Publish Post' : 'Save Draft')}
+                {isSubmitting 
+                  ? 'Publishing...' 
+                  : isEditing 
+                    ? 'Update & Publish'
+                    : 'Publish Post'
+                }
               </button>
             </div>
           </div>

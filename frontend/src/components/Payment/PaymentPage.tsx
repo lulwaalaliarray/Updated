@@ -37,6 +37,16 @@ function PaymentPage() {
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'upi' | 'wallet'>('card');
   const [error, setError] = useState<string | null>(null);
 
+  // Auto-dismiss error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   useEffect(() => {
     if (appointmentId) {
       const apt = appointments.find(a => a.id === appointmentId);

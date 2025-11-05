@@ -54,6 +54,16 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({
   const [totalPages, setTotalPages] = useState<number>(1);
   const [ratingFilter, setRatingFilter] = useState<string>('all');
 
+  // Auto-dismiss error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError('');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const fetchReviews = async () => {
     try {
       setLoading(true);

@@ -72,13 +72,13 @@ const PatientAppointments: React.FC = () => {
     }
   };
 
-  const handleCancelAppointment = (appointmentId: string) => {
+  const handleCancelAppointment = async (appointmentId: string) => {
     try {
       const userData = localStorage.getItem('userData');
       const user = userData ? JSON.parse(userData) : null;
       const userId = user?.id || user?.email || '';
       
-      const success = appointmentManager.updateAppointmentStatus(
+      const success = await appointmentManager.updateAppointmentStatus(
         appointmentId, 
         'cancelled', 
         userId,

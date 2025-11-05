@@ -6,6 +6,9 @@ import { useToast } from './Toast';
 import { appointmentStorage, Appointment } from '../utils/appointmentStorage';
 import { appointmentManager } from '../utils/appointmentManager';
 import { inputValidation } from '../utils/inputValidation';
+import { prescriptionStorage } from '../utils/prescriptionStorage';
+import { dataMigration } from '../utils/dataMigration';
+import { dateUtils } from '../utils/dateUtils';
 
 const DoctorAppointmentManager: React.FC = () => {
   const navigate = useNavigate();
@@ -34,6 +37,12 @@ const DoctorAppointmentManager: React.FC = () => {
 
   const loadDoctorAppointments = () => {
     try {
+      // Run data migration to fix any date issues
+      const migrationResult = dataMigration.runAllMigrations();
+      if (migrationResult.details?.after?.datesFixed > 0 || migrationResult.details?.after?.statusFixed > 0) {
+        showToast(`Fixed ${migrationResult.details.after.datesFixed} appointment dates and ${migrationResult.details.after.statusFixed} statuses`, 'info');
+      }
+
       const userData = localStorage.getItem('userData');
       if (!userData) {
         showToast('Please log in to view appointments', 'error');
@@ -74,7 +83,7 @@ const DoctorAppointmentManager: React.FC = () => {
 
 
 
-  const handleConfirmComplete = () => {
+  const handleConfirmComplete = async () => {
     if (!selectedAppointmentForCompletion) return;
 
     if (appointmentDetails.trim().length === 0) {
@@ -92,7 +101,7 @@ const DoctorAppointmentManager: React.FC = () => {
       const user = userData ? JSON.parse(userData) : null;
       const userId = user?.id || user?.email || '';
       
-      const success = appointmentManager.updateAppointmentStatus(
+      const success = await appointmentManager.updateAppointmentStatus(
         selectedAppointmentForCompletion.id,
         'completed',
         userId,
@@ -113,13 +122,13 @@ const DoctorAppointmentManager: React.FC = () => {
     }
   };
 
-  const handleApproveAppointment = (appointmentId: string) => {
+  const handleApproveAppointment = async (appointmentId: string) => {
     try {
       const userData = localStorage.getItem('userData');
       const user = userData ? JSON.parse(userData) : null;
       const userId = user?.id || user?.email || '';
       
-      const success = appointmentManager.updateAppointmentStatus(
+      const success = await appointmentManager.updateAppointmentStatus(
         appointmentId,
         'confirmed',
         userId,
@@ -138,13 +147,13 @@ const DoctorAppointmentManager: React.FC = () => {
     }
   };
 
-  const handleDenyAppointment = (appointmentId: string) => {
+  const handleDenyAppointment = async (appointmentId: string) => {
     try {
       const userData = localStorage.getItem('userData');
       const user = userData ? JSON.parse(userData) : null;
       const userId = user?.id || user?.email || '';
       
-      const success = appointmentManager.updateAppointmentStatus(
+      const success = await appointmentManager.updateAppointmentStatus(
         appointmentId,
         'rejected',
         userId,
@@ -271,7 +280,7 @@ const DoctorAppointmentManager: React.FC = () => {
                 },
                 { 
                   label: 'Confirmed Today', 
-                  count: appointments.filter(a => a.status === 'confirmed' && a.date === new Date().toISOString().split('T')[0]).length,
+                  count: appointments.filter(a => a.status === 'confirmed' && a.date === dateUtils.getCurrentDate()).length,
                   color: '#059669',
                   bg: '#dcfce7'
                 },
@@ -404,6 +413,8 @@ const DoctorAppointmentManager: React.FC = () => {
             </div>
           </div>
 
+
+
           {/* Appointments List */}
           {filteredAppointments.length === 0 ? (
             <div style={{
@@ -443,7 +454,7 @@ const DoctorAppointmentManager: React.FC = () => {
             }}>
               {filteredAppointments.map((appointment) => {
                 const statusStyle = getStatusColor(appointment.status);
-                const isUpcoming = new Date(appointment.date) > new Date();
+
                 
                 return (
                   <div
@@ -538,20 +549,18 @@ const DoctorAppointmentManager: React.FC = () => {
                             <span>{appointment.duration || 30} min</span>
                           </div>
                           
-                          {isUpcoming && (
-                            <span style={{
-                              color: '#059669',
-                              fontWeight: '500',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}>
-                              <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
-                                <circle cx="12" cy="12" r="10"/>
-                              </svg>
-                              Upcoming
-                            </span>
-                          )}
+                          <span style={{
+                            color: statusStyle.color,
+                            fontWeight: '500',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                              <circle cx="12" cy="12" r="10"/>
+                            </svg>
+                            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                          </span>
                         </div>
                       </div>
                       
@@ -660,7 +669,7 @@ const DoctorAppointmentManager: React.FC = () => {
                         </div>
                       )}
                       
-                      {appointment.status === 'confirmed' && isUpcoming && (
+                      {appointment.status === 'confirmed' && (
                         <button
                           onClick={() => handleCompleteAppointment(appointment.id)}
                           style={{
@@ -720,32 +729,50 @@ const DoctorAppointmentManager: React.FC = () => {
                             <span>✔️</span>
                             Consultation Completed
                           </div>
-                          <button
-                            onClick={() => navigate('/write-prescription')}
-                            style={{
+                          {!prescriptionStorage.prescriptionExistsForAppointment(appointment.id) ? (
+                            <button
+                              onClick={() => navigate('/write-prescription')}
+                              style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#059669',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#047857';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#059669';
+                              }}
+                            >
+                              <span>💊</span>
+                              Write Prescription
+                            </button>
+                          ) : (
+                            <div style={{
                               padding: '8px 16px',
-                              backgroundColor: '#059669',
-                              color: 'white',
-                              border: 'none',
                               borderRadius: '6px',
+                              backgroundColor: '#f3f4f6',
+                              color: '#6b7280',
                               fontSize: '14px',
                               fontWeight: '500',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s',
+                              border: '1px solid #d1d5db',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '6px'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.backgroundColor = '#047857';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.backgroundColor = '#059669';
-                            }}
-                          >
-                            <span>💊</span>
-                            Write Prescription
-                          </button>
+                            }}>
+                              <span>💊</span>
+                              Prescription Written
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

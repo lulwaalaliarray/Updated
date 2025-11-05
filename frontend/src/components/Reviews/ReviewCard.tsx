@@ -74,7 +74,16 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
             </Box>
 
             {review.comment && (
-              <Typography variant="body2" sx={{ mb: 2 }}>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  mb: 2,
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word',
+                  wordBreak: 'break-word',
+                  whiteSpace: 'pre-wrap'
+                }}
+              >
                 {review.comment}
               </Typography>
             )}

@@ -50,8 +50,8 @@ const PastPatients: React.FC = () => {
         // Doctor can only see patients with completed appointments with them
         const doctorId = user.id || user.email;
         patientsWithAppointments = userStorage.getDoctorPastPatients(doctorId);
-      } else {
-        // Patients shouldn't access this page
+      } else if (user.userType && user.userType === 'patient') {
+        // Only show access denied if user data is properly loaded and user is a patient
         showToast('Access denied', 'error');
         navigate('/dashboard');
         return;
@@ -757,6 +757,8 @@ const PastPatients: React.FC = () => {
                             <strong>Reason:</strong> {visit.reason}
                           </div>
                         )}
+                        
+
                       </div>
                     ))}
                   </div>
@@ -827,9 +829,11 @@ const PastPatients: React.FC = () => {
                             fontSize: '11px',
                             fontWeight: '500',
                             backgroundColor: prescription.status === 'active' ? '#dcfce7' : 
-                                           prescription.status === 'completed' ? '#dbeafe' : '#fef3c7',
+                                           prescription.status === 'completed' ? '#dbeafe' : 
+                                           prescription.status === 'expired' ? '#fee2e2' : '#fef3c7',
                             color: prescription.status === 'active' ? '#059669' : 
-                                   prescription.status === 'completed' ? '#2563eb' : '#d97706',
+                                   prescription.status === 'completed' ? '#2563eb' : 
+                                   prescription.status === 'expired' ? '#dc2626' : '#d97706',
                             textTransform: 'capitalize'
                           }}>
                             {prescription.status}

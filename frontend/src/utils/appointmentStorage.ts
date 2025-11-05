@@ -1,3 +1,5 @@
+import { dateUtils } from './dateUtils';
+
 export interface Appointment {
   id: string;
   patientId: string;
@@ -48,6 +50,22 @@ export const appointmentStorage = {
     return appointments.filter(apt => apt.patientId === patientId);
   },
 
+  // Get patient's active appointments for a specific date
+  getPatientAppointmentsForDate: (patientId: string, date: string): Appointment[] => {
+    const appointments = appointmentStorage.getAllAppointments();
+    return appointments.filter(apt => 
+      apt.patientId === patientId && 
+      apt.date === date && 
+      apt.status !== 'cancelled' && 
+      apt.status !== 'rejected'
+    );
+  },
+
+  // Check if patient has any active appointments on a specific date
+  hasPatientAppointmentOnDate: (patientId: string, date: string): boolean => {
+    return appointmentStorage.getPatientAppointmentsForDate(patientId, date).length > 0;
+  },
+
   // Get appointments by status
   getAppointmentsByStatus: (status: Appointment['status']): Appointment[] => {
     const appointments = appointmentStorage.getAllAppointments();
@@ -70,8 +88,51 @@ export const appointmentStorage = {
     return filtered.sort((a, b) => a.time.localeCompare(b.time));
   },
 
-  // Add new appointment
-  addAppointment: (appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>): Appointment => {
+  // Validate appointment booking rules
+  validateAppointmentBooking: (appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>): { valid: boolean; error?: string } => {
+    const appointments = appointmentStorage.getAllAppointments();
+    
+    // Rule 1: No two appointments can be scheduled for the exact same date and time slot
+    const conflictingAppointment = appointments.find(apt => 
+      apt.date === appointment.date && 
+      apt.time === appointment.time && 
+      apt.status !== 'cancelled' && 
+      apt.status !== 'rejected'
+    );
+    
+    if (conflictingAppointment) {
+      return {
+        valid: false,
+        error: `This time slot is already booked. Please select a different time.`
+      };
+    }
+    
+    // Rule 2: A single patient cannot book more than one appointment on the same day
+    const patientSameDayAppointments = appointments.filter(apt => 
+      apt.patientId === appointment.patientId && 
+      apt.date === appointment.date && 
+      apt.status !== 'cancelled' && 
+      apt.status !== 'rejected'
+    );
+    
+    if (patientSameDayAppointments.length > 0) {
+      return {
+        valid: false,
+        error: `You already have an appointment scheduled for this date. Please cancel your existing appointment or choose a different date.`
+      };
+    }
+    
+    return { valid: true };
+  },
+
+  // Add new appointment with validation
+  addAppointment: async (appointment: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Appointment | null> => {
+    // Validate appointment booking rules
+    const validation = appointmentStorage.validateAppointmentBooking(appointment);
+    if (!validation.valid) {
+      throw new Error(validation.error);
+    }
+    
     const appointments = appointmentStorage.getAllAppointments();
     const newAppointment: Appointment = {
       ...appointment,
@@ -85,8 +146,8 @@ export const appointmentStorage = {
     
     // Trigger patient record creation/update
     try {
-      // Import here to avoid circular dependency
-      const { patientRecordsStorage } = require('./patientRecordsStorage');
+      // Dynamic import to avoid circular dependency
+      const { patientRecordsStorage } = await import('./patientRecordsStorage');
       
       // Check if patient record exists for this doctor
       const existingRecord = patientRecordsStorage.getPatientRecordByPatientAndDoctor(
@@ -115,7 +176,7 @@ export const appointmentStorage = {
   },
 
   // Update appointment
-  updateAppointment: (id: string, updates: Partial<Appointment>): boolean => {
+  updateAppointment: async (id: string, updates: Partial<Appointment>): Promise<boolean> => {
     try {
       const appointments = appointmentStorage.getAllAppointments();
       const index = appointments.findIndex(apt => apt.id === id);
@@ -134,7 +195,7 @@ export const appointmentStorage = {
       // Sync patient records when appointment is completed
       if (updates.status === 'completed') {
         try {
-          const { patientRecordsStorage } = require('./patientRecordsStorage');
+          const { patientRecordsStorage } = await import('./patientRecordsStorage');
           patientRecordsStorage.syncPatientRecordsWithAppointments(updatedAppointment.doctorId);
         } catch (error) {
           console.error('Error syncing patient records after appointment completion:', error);
@@ -162,12 +223,12 @@ export const appointmentStorage = {
   },
 
   // Confirm appointment
-  confirmAppointment: (id: string): boolean => {
+  confirmAppointment: async (id: string): Promise<boolean> => {
     return appointmentStorage.updateAppointment(id, { status: 'confirmed' });
   },
 
   // Cancel appointment
-  cancelAppointment: (id: string, reason?: string): boolean => {
+  cancelAppointment: async (id: string, reason?: string): Promise<boolean> => {
     return appointmentStorage.updateAppointment(id, { 
       status: 'cancelled',
       notes: reason ? `Cancelled: ${reason}` : 'Cancelled'
@@ -175,7 +236,7 @@ export const appointmentStorage = {
   },
 
   // Complete appointment
-  completeAppointment: (id: string, notes?: string): boolean => {
+  completeAppointment: async (id: string, notes?: string): Promise<boolean> => {
     return appointmentStorage.updateAppointment(id, { 
       status: 'completed',
       notes: notes || 'Appointment completed'
@@ -188,7 +249,7 @@ export const appointmentStorage = {
       ? appointmentStorage.getDoctorAppointments(doctorId)
       : appointmentStorage.getAllAppointments();
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = dateUtils.getCurrentDate();
     return appointments
       .filter(apt => apt.date >= today && apt.status !== 'cancelled' && apt.status !== 'completed')
       .sort((a, b) => {
@@ -206,7 +267,7 @@ export const appointmentStorage = {
       ? appointmentStorage.getDoctorAppointments(doctorId)
       : appointmentStorage.getAllAppointments();
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = dateUtils.getCurrentDate();
     return appointments
       .filter(apt => apt.date < today || apt.status === 'completed')
       .sort((a, b) => {
@@ -218,8 +279,8 @@ export const appointmentStorage = {
       });
   },
 
-  // Force refresh appointments with updated data (for testing)
-  refreshAppointments: (): void => {
-    localStorage.setItem(APPOINTMENTS_STORAGE_KEY, JSON.stringify(defaultAppointments));
+  // Clear all appointments (for testing)
+  clearAllAppointments: (): void => {
+    localStorage.setItem(APPOINTMENTS_STORAGE_KEY, JSON.stringify([]));
   }
 };

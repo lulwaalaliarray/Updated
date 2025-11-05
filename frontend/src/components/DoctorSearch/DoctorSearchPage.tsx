@@ -54,6 +54,16 @@ export const DoctorSearchPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<Location | null>(null);
+
+  // Auto-dismiss error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
   const [mapCenter, setMapCenter] = useState<Location>({ latitude: 40.7128, longitude: -74.0060 }); // Default to NYC
   const [searchCriteria, setSearchCriteria] = useState<SearchCriteria>({});
   const [searchFilters, setSearchFilters] = useState<SearchFiltersType>({

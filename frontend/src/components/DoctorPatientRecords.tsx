@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PatientRecord, patientRecordsStorage } from '../utils/patientRecordsStorage';
+import { appointmentStorage } from '../utils/appointmentStorage';
 import { inputValidation } from '../utils/inputValidation';
 import Header from './Header';
 import Footer from './Footer';
@@ -36,14 +37,7 @@ const DoctorPatientRecords: React.FC<DoctorPatientRecordsProps> = ({ doctorId })
     
     try {
       // Initialize data
-      const { appointmentStorage } = require('../utils/appointmentStorage');
       let allAppointments = appointmentStorage.getAllAppointments();
-
-      // Force refresh data if no appointments exist
-      if (allAppointments.length === 0) {
-        appointmentStorage.refreshAppointments();
-        allAppointments = appointmentStorage.getAllAppointments();
-      }
       
       // Map the logged-in doctor to the correct doctor ID
       let actualDoctorId = doctorId;
@@ -89,7 +83,7 @@ const DoctorPatientRecords: React.FC<DoctorPatientRecordsProps> = ({ doctorId })
         const completedAppointments = patientAppointments.filter((apt: any) => apt.status === 'completed');
         const lastVisit = completedAppointments.length > 0 
           ? completedAppointments.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date
-          : null;
+          : undefined;
         
         // Get or create patient record from storage
         let existingRecord = patientRecordsStorage.getPatientRecordByPatientAndDoctor(patientId, actualDoctorId);
@@ -122,7 +116,7 @@ const DoctorPatientRecords: React.FC<DoctorPatientRecordsProps> = ({ doctorId })
         }
         
         return null;
-      }).filter(Boolean) as PatientRecord[];
+      }).filter((record: PatientRecord | null): record is PatientRecord => record !== null);
       
       console.log('Patient records created:', patientRecords.length); // Debug log
       

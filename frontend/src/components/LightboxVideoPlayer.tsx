@@ -644,21 +644,7 @@ useEffect(() => {
               </span>
             </div>
 
-            <button
-              onClick={() => navigate('/demo-showcase')}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: '#0d9488',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '12px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              More Demos
-            </button>
+
           </div>
         </div>
       </div>

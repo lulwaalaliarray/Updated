@@ -64,6 +64,17 @@ export const PaymentMonitoring: React.FC = () => {
   const [reconciliation, setReconciliation] = useState<PaymentReconciliation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-dismiss error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const [filters, setFilters] = useState<PaymentTransactionFilters>({
     page: 1,
     limit: 10,

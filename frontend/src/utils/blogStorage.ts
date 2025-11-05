@@ -339,18 +339,27 @@ The journey toward digital health transformation is just beginning, and the Gulf
 ];
 
 export const getBlogPosts = (): BlogPost[] => {
-  const stored = localStorage.getItem(BLOG_STORAGE_KEY);
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch (error) {
-      console.error('Error parsing blog posts:', error);
+  try {
+    const stored = localStorage.getItem(BLOG_STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (error) {
+        console.error('Error parsing blog posts:', error);
+      }
     }
+    
+    // Initialize with default blogs if none exist or if there was an error
+    localStorage.setItem(BLOG_STORAGE_KEY, JSON.stringify(defaultBlogs));
+    return defaultBlogs;
+  } catch (error) {
+    console.error('Critical error in getBlogPosts:', error);
+    // Return defaults without trying to save to localStorage if there's a critical error
+    return defaultBlogs;
   }
-  
-  // Initialize with default blogs if none exist
-  localStorage.setItem(BLOG_STORAGE_KEY, JSON.stringify(defaultBlogs));
-  return defaultBlogs;
 };
 
 export const getBlogPost = (id: string): BlogPost | null => {
@@ -387,4 +396,48 @@ export const getPublishedBlogPosts = (): BlogPost[] => {
 
 export const getBlogPostsByAuthor = (authorId: string): BlogPost[] => {
   return getBlogPosts().filter(post => post.authorId === authorId);
+};
+
+export const getDraftBlogPosts = (): BlogPost[] => {
+  return getBlogPosts().filter(post => !post.published);
+};
+
+export const getDraftBlogPostsByAuthor = (authorId: string): BlogPost[] => {
+  return getBlogPosts().filter(post => post.authorId === authorId && !post.published);
+};
+
+export const getPublishedBlogPostsByAuthor = (authorId: string): BlogPost[] => {
+  return getBlogPosts().filter(post => post.authorId === authorId && post.published);
+};
+
+// Function to ensure default blogs are loaded
+export const ensureDefaultBlogs = (): void => {
+  try {
+    const stored = localStorage.getItem(BLOG_STORAGE_KEY);
+    let posts: BlogPost[] = [];
+    
+    if (stored) {
+      try {
+        posts = JSON.parse(stored);
+        if (!Array.isArray(posts)) {
+          posts = [];
+        }
+      } catch (error) {
+        console.error('Error parsing stored blogs in ensureDefaultBlogs:', error);
+        posts = [];
+      }
+    }
+    
+    const hasDefaults = posts.some(post => ['doctor_1', 'doctor_2', 'admin_1'].includes(post.authorId));
+    
+    if (!hasDefaults) {
+      console.log('Default blogs missing, adding them back');
+      const allPosts = [...posts, ...defaultBlogs];
+      localStorage.setItem(BLOG_STORAGE_KEY, JSON.stringify(allPosts));
+    }
+  } catch (error) {
+    console.error('Error in ensureDefaultBlogs:', error);
+    // Fallback: just set the defaults
+    localStorage.setItem(BLOG_STORAGE_KEY, JSON.stringify(defaultBlogs));
+  }
 };

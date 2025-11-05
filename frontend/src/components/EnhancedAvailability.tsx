@@ -31,7 +31,8 @@ const EnhancedAvailability: React.FC = () => {
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData);
-        if (parsedUser.userType !== 'doctor' && parsedUser.userType !== 'admin') {
+        // Only show access denied if user data is properly loaded and user is not doctor/admin
+        if (parsedUser && parsedUser.userType && parsedUser.userType !== 'doctor' && parsedUser.userType !== 'admin') {
           showToast('Access denied. Doctors and admins only.', 'error');
           navigate('/');
           return;
@@ -55,7 +56,7 @@ const EnhancedAvailability: React.FC = () => {
   const loadDoctorAvailability = (doctorId: string) => {
     const availability = availabilityStorage.getDoctorAvailability(doctorId);
     if (availability) {
-      setWeeklySchedule(availability.weeklySchedule);
+      setWeeklySchedule(availability.weeklySchedule || availabilityStorage.getDefaultWeeklySchedule());
       setUnavailableDates(availability.unavailableDates || []);
     }
   };
@@ -71,22 +72,28 @@ const EnhancedAvailability: React.FC = () => {
     { key: 'sunday', label: 'Sunday' }
   ];
   const toggleDayAvailability = (dayKey: string) => {
-    setWeeklySchedule(prev => ({
-      ...prev,
-      [dayKey]: {
-        ...prev[dayKey],
-        available: !prev[dayKey].available
-      }
-    }));
+    setWeeklySchedule(prev => {
+      const safePrev = prev || availabilityStorage.getDefaultWeeklySchedule();
+      const currentDay = safePrev[dayKey] || { available: false, timeSlots: [] };
+      return {
+        ...safePrev,
+        [dayKey]: {
+          ...currentDay,
+          available: !currentDay.available
+        }
+      };
+    });
 
     // Auto-save when toggling availability
     if (user) {
       const doctorId = user.id || user.email;
+      const safeSchedule = weeklySchedule || availabilityStorage.getDefaultWeeklySchedule();
+      const currentDay = safeSchedule[dayKey] || { available: false, timeSlots: [] };
       const updatedSchedule = {
-        ...weeklySchedule,
+        ...safeSchedule,
         [dayKey]: {
-          ...weeklySchedule[dayKey],
-          available: !weeklySchedule[dayKey].available
+          ...currentDay,
+          available: !currentDay.available
         }
       };
       availabilityStorage.saveDoctorAvailability(doctorId, updatedSchedule, []);
@@ -101,11 +108,13 @@ const EnhancedAvailability: React.FC = () => {
       end: '10:00'
     };
 
+    const safeSchedule = weeklySchedule || availabilityStorage.getDefaultWeeklySchedule();
+    const currentDay = safeSchedule[dayKey] || { available: false, timeSlots: [] };
     const updatedSchedule = {
-      ...weeklySchedule,
+      ...safeSchedule,
       [dayKey]: {
-        ...weeklySchedule[dayKey],
-        timeSlots: [...weeklySchedule[dayKey].timeSlots, newSlot]
+        ...currentDay,
+        timeSlots: [...currentDay.timeSlots, newSlot]
       }
     };
 
@@ -119,11 +128,13 @@ const EnhancedAvailability: React.FC = () => {
   };
 
   const removeTimeSlotFromDay = (dayKey: string, slotId: string) => {
+    const safeSchedule = weeklySchedule || availabilityStorage.getDefaultWeeklySchedule();
+    const currentDay = safeSchedule[dayKey] || { available: false, timeSlots: [] };
     const updatedSchedule = {
-      ...weeklySchedule,
+      ...safeSchedule,
       [dayKey]: {
-        ...weeklySchedule[dayKey],
-        timeSlots: weeklySchedule[dayKey].timeSlots.filter(slot => slot.id !== slotId)
+        ...currentDay,
+        timeSlots: currentDay.timeSlots.filter(slot => slot.id !== slotId)
       }
     };
 
@@ -137,11 +148,13 @@ const EnhancedAvailability: React.FC = () => {
   };
 
   const updateDayTimeSlot = (dayKey: string, slotId: string, field: 'start' | 'end', value: string) => {
+    const safeSchedule = weeklySchedule || availabilityStorage.getDefaultWeeklySchedule();
+    const currentDay = safeSchedule[dayKey] || { available: false, timeSlots: [] };
     const updatedSchedule = {
-      ...weeklySchedule,
+      ...safeSchedule,
       [dayKey]: {
-        ...weeklySchedule[dayKey],
-        timeSlots: weeklySchedule[dayKey].timeSlots.map(slot =>
+        ...currentDay,
+        timeSlots: currentDay.timeSlots.map(slot =>
           slot.id === slotId ? { ...slot, [field]: value } : slot
         )
       }
@@ -287,9 +300,10 @@ const EnhancedAvailability: React.FC = () => {
     if (!user) return;
 
     const doctorId = user.id || user.email;
+    const safeSchedule = weeklySchedule || availabilityStorage.getDefaultWeeklySchedule();
     
     // Save both weekly schedule and unavailable dates
-    const success = availabilityStorage.saveDoctorAvailability(doctorId, weeklySchedule, unavailableDates);
+    const success = availabilityStorage.saveDoctorAvailability(doctorId, safeSchedule, unavailableDates);
 
     if (success) {
       showToast('Availability and unavailable dates saved successfully!', 'success');
@@ -302,7 +316,7 @@ const EnhancedAvailability: React.FC = () => {
         if (userIndex !== -1) {
           allUsers[userIndex] = {
             ...allUsers[userIndex],
-            enhancedAvailability: weeklySchedule,
+            enhancedAvailability: safeSchedule,
             unavailableDates: unavailableDates
           };
           
@@ -434,7 +448,7 @@ const EnhancedAvailability: React.FC = () => {
                 gap: '16px'
               }}>
                 {daysOfWeek.map((day) => {
-                const daySchedule = weeklySchedule[day.key];
+                const daySchedule = (weeklySchedule && weeklySchedule[day.key]) || { available: false, timeSlots: [] };
                 const hasTimeSlots = daySchedule.available && daySchedule.timeSlots.length > 0;
 
                 return (

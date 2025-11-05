@@ -46,7 +46,7 @@ export const debugUserStorage = () => {
       totalUsers: allUsers.length,
       totalDoctors: doctors.length,
       activeDoctors: activeDoctors.length,
-      visibleDoctors: doctorsWithSpecialization.length,
+      visibleDoctorsCount: doctorsWithSpecialization.length,
       doctors: doctors,
       visibleDoctors: doctorsWithSpecialization
     };

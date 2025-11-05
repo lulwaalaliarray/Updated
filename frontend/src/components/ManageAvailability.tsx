@@ -34,7 +34,8 @@ const ManageAvailability: React.FC = () => {
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData);
-        if (parsedUser.userType !== 'doctor') {
+        // Only show access denied if user data is properly loaded and user is not a doctor
+        if (parsedUser && parsedUser.userType && parsedUser.userType !== 'doctor') {
           showToast('Access denied. Doctors only.', 'error');
           navigate('/');
           return;

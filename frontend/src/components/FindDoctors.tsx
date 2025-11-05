@@ -325,7 +325,16 @@ const DoctorDetailsModal: React.FC<DoctorDetailsModalProps> = ({
                           {new Date(review.date).toLocaleDateString()}
                         </span>
                       </div>
-                      <p style={{ fontSize: '14px', color: '#374151', lineHeight: '1.6' }}>
+                      <p style={{ 
+                        fontSize: '14px', 
+                        color: '#374151', 
+                        lineHeight: '1.6',
+                        wordWrap: 'break-word',
+                        overflowWrap: 'break-word',
+                        wordBreak: 'break-word',
+                        whiteSpace: 'pre-wrap',
+                        margin: 0
+                      }}>
                         {review.comment}
                       </p>
                     </div>
@@ -465,7 +474,23 @@ const FindDoctors: React.FC = () => {
 
   // Get unique specialties from registered doctors
   const getSpecialties = () => {
-    const uniqueSpecialties = [...new Set(doctors.map(doctor => doctor.specialization).filter(Boolean))];
+    const allSpecialties = new Set<string>();
+    
+    doctors.forEach(doctor => {
+      // Add single specialization if it exists
+      if (doctor.specialization) {
+        allSpecialties.add(doctor.specialization);
+      }
+      
+      // Add multiple specializations if they exist
+      if (doctor.specializations && Array.isArray(doctor.specializations)) {
+        doctor.specializations.forEach(spec => {
+          if (spec) allSpecialties.add(spec);
+        });
+      }
+    });
+    
+    const uniqueSpecialties = Array.from(allSpecialties).filter(Boolean);
     return ['All Specialties', ...uniqueSpecialties.sort()];
   };
 
@@ -704,7 +729,8 @@ const FindDoctors: React.FC = () => {
     
     const matchesSpecialty = !selectedSpecialty || selectedSpecialty === 'All Specialties' || 
                             doctor.specialization === selectedSpecialty ||
-                            doctor.specialty === selectedSpecialty;
+                            doctor.specialty === selectedSpecialty ||
+                            (doctor.specializations && doctor.specializations.includes(selectedSpecialty));
     
     const matchesLocation = !selectedLocation || selectedLocation === 'All Locations' || 
                            doctor.location === selectedLocation;
@@ -718,13 +744,27 @@ const FindDoctors: React.FC = () => {
         // Get ratings from reviews if available, otherwise use default rating
         const aReviews = reviewStorage.getDoctorReviews(a.id);
         const bReviews = reviewStorage.getDoctorReviews(b.id);
+        
+        // Calculate actual rating from reviews or use default rating
         const aRating = aReviews.length > 0 
           ? aReviews.reduce((sum, review) => sum + review.rating, 0) / aReviews.length 
           : (a.rating || 0);
         const bRating = bReviews.length > 0 
           ? bReviews.reduce((sum, review) => sum + review.rating, 0) / bReviews.length 
           : (b.rating || 0);
-        return bRating - aRating;
+        
+        // Debug logging to see what ratings are being calculated
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Doctor ${a.name}: rating=${aRating}, reviews=${aReviews.length}, defaultRating=${a.rating}`);
+          console.log(`Doctor ${b.name}: rating=${bRating}, reviews=${bReviews.length}, defaultRating=${b.rating}`);
+        }
+        
+        // Sort by rating (highest first), then by review count as tiebreaker
+        if (Math.abs(bRating - aRating) > 0.01) { // Use small epsilon for floating point comparison
+          return bRating - aRating;
+        }
+        // If ratings are equal, prioritize doctors with more reviews
+        return bReviews.length - aReviews.length;
       case 'experience':
         // Extract years from experience string (e.g., "5 years" -> 5) or use direct number
         const aExp = typeof a.experience === 'number' ? a.experience : parseInt(a.experience?.match(/\d+/)?.[0] || '0');

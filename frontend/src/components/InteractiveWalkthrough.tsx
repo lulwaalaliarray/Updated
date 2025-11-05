@@ -63,15 +63,7 @@ const InteractiveWalkthrough: React.FC = () => {
       highlight: 'doctor-section',
       duration: 4000
     },
-    {
-      id: 'security',
-      title: 'Your Data is Secure 🔒',
-      description: 'NHRA approved and MOH certified',
-      content: 'PatientCare is fully compliant with Bahrain\'s healthcare regulations, ensuring your medical data is always protected.',
-      action: 'Learn More',
-      highlight: 'security-section',
-      duration: 3000
-    }
+
   ];
 
   const currentStepData = walkthroughSteps[currentStep];
@@ -133,9 +125,7 @@ const InteractiveWalkthrough: React.FC = () => {
       case 'doctor-features':
         navigate('/manage-availability');
         break;
-      case 'security':
-        navigate('/security');
-        break;
+
       default:
         handleNext();
     }
@@ -296,7 +286,7 @@ const InteractiveWalkthrough: React.FC = () => {
               {currentStepData.id === 'view-appointments' && '📋'}
               {currentStepData.id === 'prescriptions' && '💊'}
               {currentStepData.id === 'doctor-features' && '🩺'}
-              {currentStepData.id === 'security' && '🔒'}
+
               {currentStepData.id === 'welcome' && '🏥'}
             </div>
             <h3 style={{

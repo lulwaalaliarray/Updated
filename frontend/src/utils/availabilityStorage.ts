@@ -144,11 +144,11 @@ export const availabilityStorage = {
       }
     });
 
-    // Filter out booked appointments
-    const bookedAppointments = appointmentStorage.getDoctorAppointmentsByDateAndStatus(
-      doctorId, 
-      date, 
-      'confirmed'
+    // Filter out booked appointments (all non-cancelled/rejected appointments)
+    const bookedAppointments = appointmentStorage.getAllAppointments().filter((apt: any) => 
+      apt.date === date && 
+      apt.status !== 'cancelled' && 
+      apt.status !== 'rejected'
     );
     const bookedTimes = bookedAppointments.map((apt: any) => apt.time);
     

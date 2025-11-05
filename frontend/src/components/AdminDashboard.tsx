@@ -7,6 +7,7 @@ import { routes } from '../utils/navigation';
 import { useToast } from './Toast';
 import { appointmentStorage, Appointment } from '../utils/appointmentStorage';
 import { appointmentManager } from '../utils/appointmentManager';
+import { dateUtils } from '../utils/dateUtils';
 
 interface AdminDashboardProps {
   user: {
@@ -23,7 +24,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(dateUtils.getCurrentDate());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [pendingAppointments, setPendingAppointments] = useState<Appointment[]>([]);
   const [allPatients, setAllPatients] = useState<any[]>([]);
@@ -84,13 +85,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     setAllPatients(pastAppointments);
   };
 
-  const handleApproveAppointment = (appointmentId: string) => {
+  const handleApproveAppointment = async (appointmentId: string) => {
     try {
       const userData = localStorage.getItem('userData');
       const user = userData ? JSON.parse(userData) : null;
       const userId = user?.id || user?.email || '';
       
-      const success = appointmentManager.updateAppointmentStatus(
+      const success = await appointmentManager.updateAppointmentStatus(
         appointmentId,
         'confirmed',
         userId,
@@ -109,13 +110,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     }
   };
 
-  const handleDenyAppointment = (appointmentId: string) => {
+  const handleDenyAppointment = async (appointmentId: string) => {
     try {
       const userData = localStorage.getItem('userData');
       const user = userData ? JSON.parse(userData) : null;
       const userId = user?.id || user?.email || '';
       
-      const success = appointmentManager.updateAppointmentStatus(
+      const success = await appointmentManager.updateAppointmentStatus(
         appointmentId,
         'rejected',
         userId,
@@ -134,21 +135,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     }
   };
 
+  const handleCompleteAppointment = async (appointmentId: string) => {
+    try {
+      const success = await appointmentStorage.completeAppointment(appointmentId, 'Appointment completed by doctor');
+      
+      if (success) {
+        showToast('Appointment marked as complete', 'success');
+        loadAppointments();
+      } else {
+        showToast('Failed to complete appointment', 'error');
+      }
+    } catch (error) {
+      console.error('Error completing appointment:', error);
+      showToast('Error completing appointment', 'error');
+    }
+  };
+
   const handleDateSelect = (day: number) => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-    const dateString = newDate.toISOString().split('T')[0];
+    const dateString = dateUtils.formatDateToString(newDate);
     setSelectedDate(dateString);
   };
 
   const getAppointmentCountForDate = (day: number) => {
     const doctorId = (user as any).id || user.email;
-    const dateString = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().split('T')[0];
+    const dateString = dateUtils.formatDateToString(new Date(currentDate.getFullYear(), currentDate.getMonth(), day));
     const dayAppointments = appointmentStorage.getDoctorAppointmentsByDateAndStatus(doctorId, dateString);
     return dayAppointments.length;
   };
 
   const isSelectedDate = (day: number) => {
-    const dateString = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toISOString().split('T')[0];
+    const dateString = dateUtils.formatDateToString(new Date(currentDate.getFullYear(), currentDate.getMonth(), day));
     return dateString === selectedDate;
   };
 
@@ -302,7 +319,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  {selectedDate === new Date().toISOString().split('T')[0] ? 'Today' : 'Selected Day'} Confirmed
+                  {selectedDate === dateUtils.getCurrentDate() ? 'Today' : 'Selected Day'} Confirmed
                 </p>
               </div>
               <div style={{
@@ -358,7 +375,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  {selectedDate === new Date().toISOString().split('T')[0] ? "Today's" : 'Selected Day'} Appointments
+                  {selectedDate === dateUtils.getCurrentDate() ? "Today's" : 'Selected Day'} Appointments
                 </h2>
                 <span style={{
                   padding: '4px 8px',
@@ -436,6 +453,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                           }}>
                             {new Date(appointment.date).toLocaleDateString()} at {formatTime(appointment.time)}
                           </p>
+                          <span style={{
+                            padding: '2px 8px',
+                            backgroundColor: 
+                              appointment.status === 'pending' ? '#fef3c7' :
+                              appointment.status === 'confirmed' ? '#dcfce7' :
+                              appointment.status === 'completed' ? '#dbeafe' :
+                              appointment.status === 'cancelled' ? '#fee2e2' :
+                              '#f3f4f6',
+                            color: 
+                              appointment.status === 'pending' ? '#92400e' :
+                              appointment.status === 'confirmed' ? '#166534' :
+                              appointment.status === 'completed' ? '#1e40af' :
+                              appointment.status === 'cancelled' ? '#dc2626' :
+                              '#6b7280',
+                            borderRadius: '12px',
+                            fontSize: '10px',
+                            fontWeight: '500',
+                            textTransform: 'capitalize'
+                          }}>
+                            {appointment.status}
+                          </span>
                         </div>
                       </div>
                       {appointment.notes && (
@@ -515,6 +553,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                             }}
                           >
                             Approve
+                          </button>
+                        </div>
+                      )}
+                      {appointment.status === 'confirmed' && (
+                        <div style={{
+                          display: 'flex',
+                          gap: '8px',
+                          justifyContent: 'flex-end',
+                          marginTop: '12px'
+                        }}>
+                          <button
+                            onClick={() => handleCompleteAppointment(appointment.id)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#059669',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#047857';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#059669';
+                            }}
+                          >
+                            Mark as Complete
                           </button>
                         </div>
                       )}

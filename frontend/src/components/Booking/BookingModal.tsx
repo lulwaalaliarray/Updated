@@ -18,6 +18,18 @@ const BookingModal: React.FC<BookingModalProps> = ({ doctor, onClose, onSuccess 
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [patientHasAppointmentOnDate, setPatientHasAppointmentOnDate] = useState(false);
+
+  // Check if patient already has an appointment on the selected date
+  const checkPatientAppointmentOnDate = (date: string) => {
+    const userData = localStorage.getItem('userData');
+    if (!userData) return false;
+    
+    const user = JSON.parse(userData);
+    const patientId = user.id || user.email;
+    
+    return appointmentStorage.hasPatientAppointmentOnDate(patientId, date);
+  };
 
   // Check if a date is available for booking
   const isDateAvailable = (date: string) => {
@@ -89,10 +101,16 @@ const BookingModal: React.FC<BookingModalProps> = ({ doctor, onClose, onSuccess 
       const available = availabilityStorage.getAvailableSlots(doctor.id, selectedDate, 30);
       setAvailableSlots(available);
       
+      // Check if patient already has an appointment on this date
+      const hasAppointment = checkPatientAppointmentOnDate(selectedDate);
+      setPatientHasAppointmentOnDate(hasAppointment);
+      
       // Reset selected time if it's no longer available
       if (selectedTime && !available.includes(selectedTime)) {
         setSelectedTime('');
       }
+    } else {
+      setPatientHasAppointmentOnDate(false);
     }
   }, [selectedDate, doctor.id, selectedTime]);
 
@@ -116,8 +134,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ doctor, onClose, onSuccess 
 
       const user = JSON.parse(userData);
 
-      // Create appointment
-      const appointment = appointmentStorage.addAppointment({
+      // Create appointment with validation
+      const appointment = await appointmentStorage.addAppointment({
         patientId: user.id || user.email,
         patientName: user.name,
         patientEmail: user.email,
@@ -133,13 +151,16 @@ const BookingModal: React.FC<BookingModalProps> = ({ doctor, onClose, onSuccess 
       });
 
       if (appointment) {
+        showToast('Appointment booked successfully!', 'success');
         onSuccess();
       } else {
         showToast('Failed to book appointment', 'error');
       }
     } catch (error) {
       console.error('Error booking appointment:', error);
-      showToast('Failed to book appointment', 'error');
+      // Show the specific validation error message
+      const errorMessage = error instanceof Error ? error.message : 'Failed to book appointment';
+      showToast(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
@@ -340,6 +361,19 @@ const BookingModal: React.FC<BookingModalProps> = ({ doctor, onClose, onSuccess 
                 ⚠️ No available dates in the next two weeks. Please contact the doctor directly.
               </div>
             )}
+            {patientHasAppointmentOnDate && (
+              <div style={{
+                marginTop: '8px',
+                padding: '8px 12px',
+                backgroundColor: '#fef3cd',
+                border: '1px solid #fde68a',
+                borderRadius: '6px',
+                fontSize: '14px',
+                color: '#92400e'
+              }}>
+                ⚠️ You already have an appointment scheduled for this date. Please cancel your existing appointment first or choose a different date.
+              </div>
+            )}
           </div>
 
           {/* Time Selection */}
@@ -354,7 +388,23 @@ const BookingModal: React.FC<BookingModalProps> = ({ doctor, onClose, onSuccess 
               Select Time *
             </label>
             {selectedDate ? (
-              availableSlots.length > 0 ? (
+              patientHasAppointmentOnDate ? (
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: '#fef3cd',
+                  border: '1px solid #fde68a',
+                  borderRadius: '8px',
+                  textAlign: 'center'
+                }}>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#92400e',
+                    margin: 0
+                  }}>
+                    You cannot book multiple appointments on the same date. Please choose a different date.
+                  </p>
+                </div>
+              ) : availableSlots.length > 0 ? (
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
@@ -567,10 +617,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ doctor, onClose, onSuccess 
             </button>
             <button
               type="submit"
-              disabled={loading || !selectedDate || !selectedTime}
+              disabled={loading || !selectedDate || !selectedTime || patientHasAppointmentOnDate}
               style={{
                 padding: '12px 24px',
-                background: (loading || !selectedDate || !selectedTime) 
+                background: (loading || !selectedDate || !selectedTime || patientHasAppointmentOnDate) 
                   ? '#9ca3af' 
                   : 'linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)',
                 color: 'white',
@@ -578,20 +628,20 @@ const BookingModal: React.FC<BookingModalProps> = ({ doctor, onClose, onSuccess 
                 borderRadius: '8px',
                 fontSize: '16px',
                 fontWeight: '600',
-                cursor: (loading || !selectedDate || !selectedTime) ? 'not-allowed' : 'pointer',
+                cursor: (loading || !selectedDate || !selectedTime || patientHasAppointmentOnDate) ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
               }}
               onMouseEnter={(e) => {
-                if (!loading && selectedDate && selectedTime) {
+                if (!loading && selectedDate && selectedTime && !patientHasAppointmentOnDate) {
                   e.currentTarget.style.transform = 'translateY(-1px)';
                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(13, 148, 136, 0.3)';
                 }
               }}
               onMouseLeave={(e) => {
-                if (!loading && selectedDate && selectedTime) {
+                if (!loading && selectedDate && selectedTime && !patientHasAppointmentOnDate) {
                   e.currentTarget.style.transform = 'translateY(0)';
                   e.currentTarget.style.boxShadow = 'none';
                 }

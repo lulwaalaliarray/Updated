@@ -47,7 +47,8 @@ const WritePrescription: React.FC = () => {
         const parsedUser = JSON.parse(userData);
         console.log('Parsed user:', parsedUser);
         
-        if (parsedUser.userType !== 'doctor') {
+        // Only show access denied if user data is properly loaded and user is not a doctor
+        if (parsedUser && parsedUser.userType && parsedUser.userType !== 'doctor') {
           console.log('User is not a doctor, redirecting to home');
           showToast('Access denied. Doctors only.', 'error');
           navigate('/');
@@ -207,24 +208,10 @@ const WritePrescription: React.FC = () => {
       console.log('Prescription created successfully:', newPrescription);
       showToast('Prescription created successfully for the selected visit!', 'success');
       
-      // Reset form and reload patients (to update available visits count)
-      setSelectedPatient('');
-      setSelectedAppointment('');
-      setAvailableAppointments([]);
-      setDiagnosis('');
-      setNotes('');
-      setMedications([{
-        name: '',
-        dosage: '',
-        frequency: '',
-        duration: '',
-        instructions: ''
-      }]);
-      
-      // Reload patients to reflect updated availability
-      if (user) {
-        loadPastPatients(user.id || user.email);
-      }
+      // Redirect to appointments page after successful prescription creation
+      setTimeout(() => {
+        navigate('/appointments');
+      }, 1500); // Small delay to allow user to see the success message
       
       console.log('Prescription submission completed successfully');
       return false; // Prevent any default form behavior

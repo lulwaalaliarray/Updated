@@ -173,7 +173,7 @@ function AppointmentsPage() {
                           {appointment.doctor.specializations.join(', ')}
                         </Typography>
                       )}
-                      {appointment.consultationNotes && (
+                      {appointment.consultationNotes && user?.userType === 'doctor' && (
                         <Box sx={{ mt: 1 }}>
                           <Typography 
                             variant="body2" 
